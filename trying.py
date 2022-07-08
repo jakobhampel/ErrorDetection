@@ -2,13 +2,31 @@ import sys
 import pandas as pd
 
 
+def compute_variation_nuclei(nuclei: list) -> list:
+    """
+    searches for nuclei with more than one label
+    :param nuclei: the list of nuclei
+    :return: a list of variation nuclei
+    """
+    variation_nuclei = list()
+    for i in range(len(nuclei)):
+        nucleus = nuclei[i]
+        for j in range(i + 1, len(nuclei)):
+            candidate = nuclei[j]
+            if nucleus[0] == candidate[0] and nucleus[1] == candidate[1]:  # same word pair
+                if nucleus[2] != candidate[2]:  # different label
+                    variation_nuclei.append([nucleus, candidate])
+
+    return variation_nuclei
+
+
 def pretty_print_pairs(dependency_pairs: list) -> None:
     """
-    prints the pairs-table as a dataframe
+    prints the pairs-list as a dataframe
     :param dependency_pairs: list of dependency pairs
     :return: None
     """
-    df = pd.DataFrame(dependency_pairs, columns=['word1', 'word2', 'label'])
+    df = pd.DataFrame(dependency_pairs[:100], columns=['word1', 'word2', 'label'])
     print(df)
 
 
@@ -43,7 +61,6 @@ def retrieve_all_dependency_pairs(sentences: list) -> list:
     :param sentences: a list of lists; each list represents a full sentence in CONLL-U format
     :return:a list of tuples containing the pair and the label
     """
-    # TODO: store them as a trie
     dependency_pairs = list()
     for sentence in sentences:
         sentence_pairs = retrieve_dependency_pairs(sentence)
@@ -89,4 +106,5 @@ if __name__ == '__main__':
     fn = 'data/TuebaDZ_superShortVersion.txt'
     data = read_data(fn)
     dp = retrieve_all_dependency_pairs(data)
-    pretty_print_pairs(dp)
+    vn = compute_variation_nuclei(dp)
+    print(vn)
