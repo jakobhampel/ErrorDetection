@@ -1,110 +1,127 @@
-import sys
 import pandas as pd
+import progressbar
 
 
-def compute_variation_nuclei(nuclei: list) -> list:
-    """
-    searches for nuclei with more than one label
-    :param nuclei: the list of nuclei
-    :return: a list of variation nuclei
-    """
-    variation_nuclei = list()
-    for i in range(len(nuclei)):
-        nucleus = nuclei[i]
-        for j in range(i + 1, len(nuclei)):
-            candidate = nuclei[j]
-            if nucleus[0] == candidate[0] and nucleus[1] == candidate[1]:  # same word pair
-                if nucleus[2] != candidate[2]:  # different label
-                    variation_nuclei.append([nucleus, candidate])
+class ErrorDetector:
+    def __init__(self):
+        self.sentences = list()
+        self.nuclei = list()
+        self.variation_nuclei = list()
+        self.nil = dict()
 
-    return variation_nuclei
-
-
-def pretty_print_pairs(dependency_pairs: list) -> None:
-    """
-    prints the pairs-list as a dataframe
-    :param dependency_pairs: list of dependency pairs
-    :return: None
-    """
-    df = pd.DataFrame(dependency_pairs[:100], columns=['word1', 'word2', 'label'])
-    print(df)
-
-
-def read_data(filename: str) -> list:
-    """
-    reads in a text file in CONLL-U format
-    :param filename: path to the file to read
-    :return: a list of lists, representing the sentence blocks in the text file
-    """
-    sentences = list()
-    with open(filename, 'r', encoding='utf8') as f:
-        f.readline()  # ignore the 'newdoc' tag
-        line = f.readline()
-        sentence = list()
-        while line:
-            # blank line indicates a new sentence
-            if line == '\n':
-                sentences.append(sentence)
-                sentence = list()
-            else:
-                sentence.append(line)
-            line = f.readline()
-        if sentence:
-            sentences.append(sentence)
-
-    return sentences
-
-
-def retrieve_all_dependency_pairs(sentences: list) -> list:
-    """
-    helper method to call the retrieve_dependency_pairs method several times
-    :param sentences: a list of lists; each list represents a full sentence in CONLL-U format
-    :return:a list of tuples containing the pair and the label
-    """
-    dependency_pairs = list()
-    for sentence in sentences:
-        sentence_pairs = retrieve_dependency_pairs(sentence)
-        dependency_pairs += sentence_pairs
-    return dependency_pairs
-
-
-def retrieve_dependency_pairs(sentence: list) -> list:
-    """
-    creates the dependency pairs
-    :param sentence: a list comprising a full sentence in CONLL-U format
-    :return: a list of tuples containing the pair and the label
-    """
-    sentence_pairs = list()
-    sentence = [item for item in sentence if not item.startswith('#')]  # ignore the sent_id and text info
-
-    for item in sentence:
-        item = item.split('\t')
-
-        # retrieve the information from the current item
-        word_id = int(item[0])
-        word = item[1]
-        head_id = int(item[6])
-        label = item[7]
-
-        # based on the head_id, retrieve the head in the sentence
-        head = sentence[head_id - 1].split('\t')[1]
-
-        # assign the dependency label, including directedness
-        if head_id == 0:
-            sentence_pairs.append(('root', word, 'root-L'))
-        elif head_id > word_id:
-            sentence_pairs.append((word, head, label + '-R'))
-        elif head_id < word_id:
-            sentence_pairs.append((head, word, label + '-L'))
+    def compute_variation_nuclei(self, cut: int = 0):
+        """
+        searches for nuclei with more than one label
+        :param cut: limits the search range within the nuclei list; if 0, use the whole list
+        """
+        if cut < 0 or cut > len(self.nuclei):
+            print("Search range is invalid.")
+            return
+        elif cut:
+            search_range = cut
         else:
-            sys.exit(1)
+            search_range = len(self.nuclei)
 
-    return sentence_pairs
+        with progressbar.ProgressBar(max_value=search_range) as bar:
+            for i in range(search_range):
+                bar.update(i)
+                nucleus = self.nuclei[i]
+                for j in range(i + 1, search_range):
+                    candidate = self.nuclei[j]
+                    if nucleus[0] == candidate[0] and nucleus[1] == candidate[1]:  # same word pair
+                        if nucleus[2] != candidate[2]:  # different label
+                            self.variation_nuclei.append([nucleus, candidate])
+
+    def detect_errors(self, filename: str):
+        """ 'main' method to use the functions in this class"""
+
+        # clear all class variables
+        self.sentences.clear()
+        self.nuclei.clear()
+        self.variation_nuclei.clear()
+        self.nil.clear()
+
+        print("Read data...")
+        self.read_data(filename)
+        print("Done.")
+
+        print("Retrieve dependency pairs...")
+        self.retrieve_dependency_pairs()
+        print("Done.")
+        print("\n There are {} nuclei found in the file".format(str(len(self.nuclei))))
+        cut = len(self.nuclei) // 100
+        print("I will now analyze the first {} nuclei.".format(str(cut)))
+
+        self.compute_variation_nuclei(cut)
+        self.pretty_print_variation_nuclei()
+
+    def pretty_print_pairs(self) -> None:
+        """
+        prints the nuclei as a dataframe
+        """
+        df = pd.DataFrame(self.nuclei[:100], columns=['word1', 'word2', 'label'])
+        print(df)
+
+    def pretty_print_variation_nuclei(self) -> None:
+        """
+        prints the variation nuclei as a dataframe
+        """
+        print("I found {} variation nuclei. Here are the first 20: \n".format(len(self.variation_nuclei)))
+        df = pd.DataFrame(self.variation_nuclei[:20], columns=["variation1", "variation2"])
+        print(df)
+
+    def read_data(self, filename: str) -> None:
+        """
+        reads in a text file in CONLL-U format
+        :param filename: path to the file to read
+        """
+        with open(filename, 'r', encoding='utf8') as f:
+            f.readline()  # ignore the 'newdoc' tag
+            line = f.readline()
+            sentence = list()
+            while line:
+                # blank line indicates a new sentence
+                if line == '\n':
+                    self.sentences.append(sentence)
+                    sentence = list()
+                else:
+                    sentence.append(line)
+                line = f.readline()
+            if sentence:
+                self.sentences.append(sentence)
+
+    def retrieve_dependency_pairs(self) -> None:
+        """
+        creates the dependency pairs
+        """
+        for sentence in self.sentences:
+            sentence = [item for item in sentence if not item.startswith('#')]  # ignore the sent_id and text info
+
+            for item in sentence:
+                item = item.split('\t')
+                if '-' in item[0]:
+                    # skip the merged words, they are already handled in the CONLL-U format
+                    continue
+
+                # retrieve the information from the current item
+                word_id = int(item[0])
+                word = item[1]
+                head_id = int(item[6])
+                label = item[7]
+
+                # based on the head_id, retrieve the head in the sentence
+                head = sentence[head_id - 1].split('\t')[1]
+
+                # assign the dependency label, including directedness
+                if head_id == 0:
+                    self.nuclei.append(('root', word, 'root-L'))
+                elif head_id > word_id:
+                    self.nuclei.append((word, head, label + '-R'))
+                elif head_id < word_id:
+                    self.nuclei.append((head, word, label + '-L'))
 
 
 if __name__ == '__main__':
-    fn = 'data/TuebaDZ_superShortVersion.txt'
-    data = read_data(fn)
-    dp = retrieve_all_dependency_pairs(data)
-    vn = compute_variation_nuclei(dp)
-    print(vn)
+    ed = ErrorDetector()
+    fn = 'data/TuebaDzUpdated.txt'
+    ed.detect_errors(fn)
