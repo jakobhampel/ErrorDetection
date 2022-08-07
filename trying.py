@@ -1,13 +1,18 @@
 import pandas as pd
 import progressbar
 
+from trie import Trie
+
 
 class ErrorDetector:
     def __init__(self):
         self.sentences = list()
-        self.nuclei = list()
+        self.nuclei = dict()
         self.variation_nuclei = list()
         self.nil = dict()
+
+    def apply_heuristics(self):
+        pass
 
     def compute_variation_nuclei(self, cut: int = 0):
         """
@@ -48,11 +53,10 @@ class ErrorDetector:
         print("Retrieve dependency pairs...")
         self.retrieve_dependency_pairs()
         print("Done.")
-        print("\n There are {} nuclei found in the file".format(str(len(self.nuclei))))
+        """print("\n There are {} nuclei found in the file".format(str(len(self.nuclei))))
         cut = len(self.nuclei) // 100
-        print("I will now analyze the first {} nuclei.".format(str(cut)))
+        print("I will now analyze the first {} nuclei.".format(str(cut)))"""
 
-        self.compute_variation_nuclei(cut)
         self.pretty_print_variation_nuclei()
 
     def pretty_print_pairs(self) -> None:
@@ -67,7 +71,7 @@ class ErrorDetector:
         prints the variation nuclei as a dataframe
         """
         print("I found {} variation nuclei. Here are the first 20: \n".format(len(self.variation_nuclei)))
-        df = pd.DataFrame(self.variation_nuclei[:20], columns=["variation1", "variation2"])
+        df = pd.DataFrame(self.variation_nuclei[:20], columns=["word pair", "label 1", "label 2"])
         print(df)
 
     def read_data(self, filename: str) -> None:
@@ -90,35 +94,68 @@ class ErrorDetector:
             if sentence:
                 self.sentences.append(sentence)
 
-    def retrieve_dependency_pairs(self) -> None:
+    def retrieve_dependency_pairs(self, cut: int = 0) -> None:
         """
         creates the dependency pairs
         """
-        for sentence in self.sentences:
-            sentence = [item for item in sentence if not item.startswith('#')]  # ignore the sent_id and text info
 
-            for item in sentence:
-                item = item.split('\t')
-                if '-' in item[0]:
-                    # skip the merged words, they are already handled in the CONLL-U format
-                    continue
+        if cut < 0 or cut > len(self.sentences):
+            print("Search range is invalid.")
+            return
+        elif cut:
+            search_range = cut
+        else:
+            search_range = len(self.sentences)
 
-                # retrieve the information from the current item
-                word_id = int(item[0])
-                word = item[1]
-                head_id = int(item[6])
-                label = item[7]
+        with progressbar.ProgressBar(max_value=search_range) as bar:
+            for i in range(search_range):
+                bar.update(i)
+                sentence = [item for item in self.sentences[i] if not item.startswith('#')]  # ignore the sent_id and text info
 
-                # based on the head_id, retrieve the head in the sentence
-                head = sentence[head_id - 1].split('\t')[1]
+                for item in sentence:
+                    item = item.split('\t')
+                    if '-' in item[0] or item[3] == 'PUNCT':
+                        # skip punctuation & the merged words, they are already handled in the CONLL-U format
+                        continue
 
-                # assign the dependency label, including directedness
-                if head_id == 0:
-                    self.nuclei.append(('root', word, 'root-L'))
-                elif head_id > word_id:
-                    self.nuclei.append((word, head, label + '-R'))
-                elif head_id < word_id:
-                    self.nuclei.append((head, word, label + '-L'))
+                    # retrieve the information from the current item
+                    word_id = int(item[0])
+                    word = item[1]
+                    head_id = int(item[6])
+                    label = item[7]
+
+                    # based on the head_id, retrieve the head in the sentence
+                    head = sentence[head_id - 1].split('\t')[1]
+
+                    # assign the dependency label, including directedness
+                    # TODO: append sentence info to value (instead of 0)
+                    if head_id == 0:
+                        key = ('root', word)
+                        value = ('root-L', 0)
+                    elif head_id > word_id:
+                        key = (word, head)
+                        value = (label + '-R', 0)
+                    elif head_id < word_id:
+                        key = (head, word)
+                        value = (label + '-L', 0)
+                    else:
+                        return
+
+                    # check if key exists
+                    if key in self.nuclei:
+                        other_value = self.nuclei[key]
+
+                        # check for variation nuclei and create new value content
+                        for v in other_value:
+                            if value[0] != v[0]:
+                                self.variation_nuclei.append([key, value, v])
+                        other_value.append(value)
+                        value = other_value
+                    else:
+                        value = [value]
+
+                    # append the new dependency pair to the nuclei dictionary
+                    self.nuclei[key] = value
 
 
 if __name__ == '__main__':
