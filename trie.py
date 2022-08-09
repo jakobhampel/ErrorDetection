@@ -33,7 +33,7 @@ class Trie:
                 new_node = Node(word)
                 node.add_node(new_node)
                 node = new_node
-        node.is_finished = False
+        node.is_finished = True
 
     def clear(self):
         self.root = Node('*')
@@ -47,11 +47,13 @@ class Trie:
             print(child.word)
             for grandchild in child.children:
                 print("\t" + grandchild.word)
+                for grandgrandchild in grandchild.children:
+                    print("\t\t" + grandgrandchild.word)
 
 
 if __name__ == "__main__":
     trie = Trie()
-    with open("data/trietest.txt", 'r', encoding='utf8') as f:
+    with open("test/trietest.txt", 'r', encoding='utf8') as f:
         lines = f.readlines()
 
     for line in lines:
