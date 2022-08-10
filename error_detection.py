@@ -10,7 +10,20 @@ class ErrorDetector:
         self.sentences = list()
         self.nuclei = dict()
         self.variation_nuclei = list()
-        self.nil = Trie()
+        self.nil = dict()
+
+    def add_nil(self, word1: str, word2: str, location: tuple):
+        """adds a nil pair to the dictionary in a trie-like manner"""
+        if word1 in self.nil:
+            level2 = self.nil[word1]
+            if word2 in level2:
+                level2[word2].append(location)
+            else:
+                level2[word2] = [location]
+        else:
+            level2 = dict()
+            level2[word2] = [location]
+            self.nil[word1] = level2
 
     def analyze_sentences(self):
         """
@@ -19,8 +32,8 @@ class ErrorDetector:
         """
 
         # init progressbar
-        with progressbar.ProgressBar(max_value=len(self.sentences)) as bar:
-            for i in range(len(self.sentences)):
+        with progressbar.ProgressBar(max_value=len(self.sentences)//2) as bar:
+            for i in range(len(self.sentences)//2):
                 bar.update(i)
 
                 # go through each word in the sentence
@@ -33,9 +46,6 @@ class ErrorDetector:
 
                     self.collect_dependency_pair(sentence, item, i+1)
                     self.collect_nil_items(sentence, item, i+1)
-
-    def apply_heuristics(self):
-        pass
 
     def collect_dependency_pair(self, sentence: list, item: list, sentence_id: int):
         """creates the dependency pair of the item in the sentence
@@ -51,16 +61,13 @@ class ErrorDetector:
         head = sentence[head_id - 1].split('\t')[1]
         if head_id == 0:
             key = ('root', word)
-            # dependency_pair = DependencyPair(key, 'root-L', sentence_id, 0, word_id)
-            d = sentence_id
+            dependency_pair = DependencyPair(key, 'root-L', sentence_id, 0, word_id)
         elif head_id > word_id:
             key = (word, head)
-            # dependency_pair = DependencyPair(key, label + '-R', sentence_id, word_id, head_id)
-            d = sentence_id
+            dependency_pair = DependencyPair(key, label + '-R', sentence_id, word_id, head_id)
         elif head_id < word_id:
             key = (head, word)
-            # dependency_pair = DependencyPair(key, label + '-L', sentence_id, head_id, word_id)
-            d = sentence_id
+            dependency_pair = DependencyPair(key, label + '-L', sentence_id, head_id, word_id)
         else:
             return
 
@@ -70,14 +77,15 @@ class ErrorDetector:
 
             # check for variation nuclei
             for pair in other_pairs:
-                d = 9
-                """if pair != dependency_pair:
-                    self.variation_nuclei.append([dependency_pair, pair])"""
+                if pair.overlaps_with(dependency_pair):
+                    continue
+                if pair != dependency_pair:
+                    self.variation_nuclei.append([dependency_pair, pair])
 
             # create value content
-            value = other_pairs + [d]
+            value = other_pairs + [dependency_pair]
         else:
-            value = [d]
+            value = [dependency_pair]
 
         # append the new dependency pair to the nuclei dictionary
         self.nuclei[key] = value
@@ -103,8 +111,8 @@ class ErrorDetector:
 
             # the two items must not have a dependency relation
             if head_id != other_word_id and other_head_id != word_id:
-                nil = (word, other_word, str(sentence_id))
-                self.nil.add_pair(nil)
+                location = (sentence_id, word_id, other_word_id)
+                self.add_nil(word, other_word, location)
 
     def detect_errors(self, filename: str):
         """ 'main' method to use the functions in this class"""
@@ -123,8 +131,7 @@ class ErrorDetector:
         self.analyze_sentences()
         print("There are {} distinct word pairs in the file".format(str(len(self.nuclei))))
         # self.pretty_print_pairs()
-        # self.pretty_print_variation_nuclei()
-        # self.nil.pretty_print()
+        self.pretty_print_variation_nuclei()
 
     def pretty_print_pairs(self) -> None:
         """

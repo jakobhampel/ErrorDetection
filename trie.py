@@ -19,10 +19,10 @@ class Trie:
     def __init__(self):
         self.root = Node('*')
 
-    def add_pair(self, word_pair: tuple):
-        """ adds a word pair to the trie """
+    def add_nil(self, nil: tuple):
+        """ adds a nil pair to the trie """
         node = self.root
-        for word in word_pair:
+        for word in nil:
             found = False
             for child in node.children:
                 if child.word == word:

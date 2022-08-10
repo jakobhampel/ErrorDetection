@@ -23,13 +23,14 @@ DEPENDENCY_PAIRS = {
 
 def test_trie():
     trie = Trie()
+    ed = ErrorDetector()
     with open("trietest.txt", 'r', encoding='utf8') as f:
         lines = f.readlines()
 
     for line in lines:
         pair = tuple(line.split(" "))
-        trie.add_pair(pair)
-    trie.pretty_print()
+        ed.add_nil(pair[0], pair[1], int(pair[2]))
+    print("Done")
 
 
 def test_dependency_pairs():
@@ -59,4 +60,4 @@ def test_dependency_pairs():
 
 
 if __name__ == "__main__":
-    test_dependency_pairs()
+    test_trie()
