@@ -1,12 +1,12 @@
-this house 1
-old house 2
-he laughs 3
-this girl 4
-she walks 5
-he walks 6
-old girl 7
-he cries 8
-old old 9
-this girl 10
-he walks 11
-this girl 12
+this house 1 12 2
+old house 2 33 12
+he laughs 3 16 17
+this girl 4 5 9
+she walks 5 7 3
+he walks 6 21 23
+old girl 7 19 1
+he cries 8 8 18
+old old 9 11 14
+this girl 10 6 5
+he walks 11 7 23
+this girl 12 6 19

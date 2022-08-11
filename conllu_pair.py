@@ -43,3 +43,22 @@ class NILPair:
         self.sentence_id = sentence_id
         self.word1_id = word1_id
         self.word2_id = word2_id
+
+
+class Item:
+    """represents an item in CONLL-U format
+    holds the location indices and a label (except for NIL items)"""
+    def __init__(self, sentence: int, word1: int, word2: int, label: str = None):
+        self.sentence = sentence
+        self.word1 = word1
+        self.word2 = word2
+        self.label = label
+
+    def head(self):
+        if self.label:
+            if self.label.endswith('L'):
+                return self.word1
+            else:
+                return self.word2
+        else:
+            return None

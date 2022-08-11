@@ -2,15 +2,15 @@ import pandas as pd
 import progressbar
 
 from trie import Trie
-from conllu_pair import DependencyPair
+from conllu_pair import DependencyPair, Item
 
 
 class ErrorDetector:
     def __init__(self):
         self.sentences = list()
-        self.nuclei = dict()
+        self.nuclei = Trie()
         self.variation_nuclei = list()
-        self.nil = dict()
+        self.nil = Trie()
 
     def add_nil(self, word1: str, word2: str, location: tuple):
         """adds a nil pair to the dictionary in a trie-like manner"""
@@ -32,8 +32,8 @@ class ErrorDetector:
         """
 
         # init progressbar
-        with progressbar.ProgressBar(max_value=len(self.sentences)//2) as bar:
-            for i in range(len(self.sentences)//2):
+        with progressbar.ProgressBar(max_value=len(self.sentences)) as bar:
+            for i in range(len(self.sentences)):
                 bar.update(i)
 
                 # go through each word in the sentence
@@ -60,35 +60,16 @@ class ErrorDetector:
         # create the dependency pair regarding directedness
         head = sentence[head_id - 1].split('\t')[1]
         if head_id == 0:
-            key = ('root', word)
-            dependency_pair = DependencyPair(key, 'root-L', sentence_id, 0, word_id)
+            label = 'root-L'
+            self.nuclei.add_item('root', word, sentence_id, 0, word_id, label)
         elif head_id > word_id:
-            key = (word, head)
-            dependency_pair = DependencyPair(key, label + '-R', sentence_id, word_id, head_id)
+            label = label + '-R'
+            self.nuclei.add_item(word, head, sentence_id, word_id, head_id, label)
         elif head_id < word_id:
-            key = (head, word)
-            dependency_pair = DependencyPair(key, label + '-L', sentence_id, head_id, word_id)
+            label = label + '-L'
+            self.nuclei.add_item(head, word, sentence_id, head_id, word_id, label)
         else:
             return
-
-        # check if dependency pair already exists
-        if key in self.nuclei:
-            other_pairs = self.nuclei[key]
-
-            # check for variation nuclei
-            for pair in other_pairs:
-                if pair.overlaps_with(dependency_pair):
-                    continue
-                if pair != dependency_pair:
-                    self.variation_nuclei.append([dependency_pair, pair])
-
-            # create value content
-            value = other_pairs + [dependency_pair]
-        else:
-            value = [dependency_pair]
-
-        # append the new dependency pair to the nuclei dictionary
-        self.nuclei[key] = value
 
     def collect_nil_items(self, sentence: list, item: list, sentence_id: int):
         """iterates through the sentence and fills up the trie structure
@@ -111,8 +92,7 @@ class ErrorDetector:
 
             # the two items must not have a dependency relation
             if head_id != other_word_id and other_head_id != word_id:
-                location = (sentence_id, word_id, other_word_id)
-                self.add_nil(word, other_word, location)
+                self.nil.add_item(word, other_word, sentence_id, word_id, other_word_id)
 
     def detect_errors(self, filename: str):
         """ 'main' method to use the functions in this class"""
@@ -130,7 +110,8 @@ class ErrorDetector:
         print("Start analysis...")
         self.analyze_sentences()
         print("There are {} distinct word pairs in the file".format(str(len(self.nuclei))))
-        # self.pretty_print_pairs()
+        # self.nuclei.pretty_print()
+        # self.nil.pretty_print()
         self.pretty_print_variation_nuclei()
 
     def pretty_print_pairs(self) -> None:
