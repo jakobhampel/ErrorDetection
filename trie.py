@@ -1,8 +1,3 @@
-""" parts of this code are inspired from
-https://towardsdatascience.com/implementing-a-trie-data-structure-in-python-in-less-than-100-lines-of-code-a877ea23c1a1
-"""
-
-
 class Item:
     """represents an item in CONLL-U format
     holds the location indices and a label (except for NIL items)"""
@@ -21,12 +16,16 @@ class Item:
         else:
             return None
 
-    def overlaps_with(self, other):
+    def overlaps_with(self, other) -> bool:
         if self.sentence == other.sentence:
             if self.head() == other.head():
                 return True
             return False
         return False
+
+    def to_list(self):
+        """returns a list version of itself (for json storing purposes)"""
+        return[self.sentence, self.word1, self.word2, self.label]
 
     def __str__(self):
         return "{} - {} - {} : {}".format(self.sentence, self.word1, self.word2, self.label if self.label else "NIL")
@@ -38,6 +37,8 @@ class Trie(dict):
         super(Trie, self).__init__()
 
     def add_item(self, word1: str, word2: str, sentence_id: int, word1_id: int, word2_id: int, label: str = None):
+        """ adds an item to the trie structure, returns a variation nucleus, if detected"""
+        variation_nucleus = tuple()
         item = Item(sentence_id, word1_id, word2_id, label)
         if word1 in self:
             level2 = self[word1]
@@ -45,8 +46,7 @@ class Trie(dict):
                 for other_item in level2[word2]:
                     # TODO: implement overlap handling
                     if item.label != other_item.label:
-                        # TODO: append to variation nuclei
-                        l1 = 0
+                        variation_nucleus = (item, other_item)
                 level2[word2].append(item)
             else:
                 level2[word2] = [item]
@@ -54,9 +54,16 @@ class Trie(dict):
             level2 = dict()
             level2[word2] = [item]
             self[word1] = level2
+        return variation_nucleus
 
-    def find_pair(self, word_pair: tuple):
-        """ searches for a word pair in the trie"""
+    def find_pairs(self, word1: str, word2: str):
+        """ searches for a word pair in the trie and returns the corresponding items"""
+        items = []
+        if word1 in self:
+            level2 = self[word1]
+            if word2 in level2:
+                items = level2[word2]
+        return items
 
     def pretty_print(self):
         """ pretty prints the two levels of the trie"""
@@ -64,13 +71,3 @@ class Trie(dict):
             for value, items in values.items():
                 for item in items:
                     print(key + "\t" + value + "\t" + str(item))
-
-
-if __name__ == "__main__":
-    trie = Trie()
-    with open("test/trietest.txt", "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    for line_yeah in lines:
-        line = line_yeah.split(" ")
-        trie.add_item(line[0], line[1], int(line[2]), int(line[3]), int(line[4]))
-    trie.pretty_print()

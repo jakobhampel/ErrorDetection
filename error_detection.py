@@ -1,8 +1,8 @@
 import pandas as pd
 import progressbar
+import json
 
-from trie import Trie
-from conllu_pair import DependencyPair, Item
+from trie import Trie, Item
 
 
 class ErrorDetector:
@@ -11,19 +11,23 @@ class ErrorDetector:
         self.nuclei = Trie()
         self.variation_nuclei = list()
         self.nil = Trie()
+        self.found = 0
 
-    def add_nil(self, word1: str, word2: str, location: tuple):
-        """adds a nil pair to the dictionary in a trie-like manner"""
-        if word1 in self.nil:
-            level2 = self.nil[word1]
-            if word2 in level2:
-                level2[word2].append(location)
-            else:
-                level2[word2] = [location]
-        else:
-            level2 = dict()
-            level2[word2] = [location]
-            self.nil[word1] = level2
+    def analyze_nil(self):
+        """
+        iterates through all the nuclei previously collected in analyze_sentences()
+        and searches for variation nuclei among the NIL items
+        """
+        with progressbar.ProgressBar(max_value=len(self.nuclei)) as bar:
+            count = 0
+            for word1, level2 in self.nuclei.items():
+                count += 1
+                bar.update(count)
+                for word2, items in level2.items():
+                    for item in items:
+                        nil_items = self.nil.find_pairs(word1, word2)
+                        for nil_item in nil_items:
+                            self.variation_nuclei.append((item, nil_item))
 
     def analyze_sentences(self):
         """
@@ -32,8 +36,8 @@ class ErrorDetector:
         """
 
         # init progressbar
-        with progressbar.ProgressBar(max_value=len(self.sentences)) as bar:
-            for i in range(len(self.sentences)):
+        with progressbar.ProgressBar(max_value=len(self.sentences)//20) as bar:
+            for i in range(len(self.sentences)//20):
                 bar.update(i)
 
                 # go through each word in the sentence
@@ -46,6 +50,9 @@ class ErrorDetector:
 
                     self.collect_dependency_pair(sentence, item, i+1)
                     self.collect_nil_items(sentence, item, i+1)
+
+    def apply_nil_internal_context_heuristics(self, item1: Item, item2: Item):
+        self.found += 1
 
     def collect_dependency_pair(self, sentence: list, item: list, sentence_id: int):
         """creates the dependency pair of the item in the sentence
@@ -61,15 +68,18 @@ class ErrorDetector:
         head = sentence[head_id - 1].split('\t')[1]
         if head_id == 0:
             label = 'root-L'
-            self.nuclei.add_item('root', word, sentence_id, 0, word_id, label)
+            vn = self.nuclei.add_item('root', word, sentence_id, 0, word_id, label)
         elif head_id > word_id:
             label = label + '-R'
-            self.nuclei.add_item(word, head, sentence_id, word_id, head_id, label)
+            vn = self.nuclei.add_item(word, head, sentence_id, word_id, head_id, label)
         elif head_id < word_id:
             label = label + '-L'
-            self.nuclei.add_item(head, word, sentence_id, head_id, word_id, label)
+            vn = self.nuclei.add_item(head, word, sentence_id, head_id, word_id, label)
         else:
             return
+
+        if vn:
+            self.variation_nuclei.append(vn)
 
     def collect_nil_items(self, sentence: list, item: list, sentence_id: int):
         """iterates through the sentence and fills up the trie structure
@@ -109,18 +119,28 @@ class ErrorDetector:
 
         print("Start analysis...")
         self.analyze_sentences()
-        print("There are {} distinct word pairs in the file".format(str(len(self.nuclei))))
-        # self.nuclei.pretty_print()
-        # self.nil.pretty_print()
+
+        print("Analyzing NIL items...")
+        self.analyze_nil()
+
+        print("\n\n")
+        self.pretty_print_variation_nuclei()
+        self.save_variation_nuclei()
+        self.load_variation_nuclei()
         self.pretty_print_variation_nuclei()
 
-    def pretty_print_pairs(self) -> None:
-        """
-        prints the nuclei as a dataframe
-        """
-        for pairs in self.nuclei.values():
-            for pair in pairs:
-                print(pair)
+    def load_variation_nuclei(self):
+        """loads the "raw" variation nuclei (without heuristics) from a json file"""
+        self.variation_nuclei.clear()
+        with open("data/variationNuclei.json", "r") as fp:
+            variation_nuclei = json.load(fp)
+
+        for vn in variation_nuclei:
+            item1 = vn[0]
+            item2 = vn[1]
+            cur_item1 = Item(item1[0], item1[1], item1[2], item1[3])
+            cur_item2 = Item(item2[0], item2[1], item2[2], item2[3])
+            self.variation_nuclei.append((cur_item1, cur_item2))
 
     def pretty_print_variation_nuclei(self) -> None:
         """
@@ -149,6 +169,19 @@ class ErrorDetector:
                 line = f.readline()
             if sentence:
                 self.sentences.append(sentence)
+
+    def save_variation_nuclei(self):
+        """saves the "raw" variation nuclei (without heuristics) into a json file"""
+
+        variation_nuclei = list()
+        for vn in self.variation_nuclei:
+            temp = vn[0]
+            item1 = temp.to_list()
+            item2 = vn[1].to_list()
+            variation_nuclei.append((item1, item2))
+
+        with open("data/variationNuclei.json", "w") as fp:
+            json.dump(variation_nuclei, fp, indent=4)
 
 
 if __name__ == '__main__':

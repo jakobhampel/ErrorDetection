@@ -21,18 +21,6 @@ DEPENDENCY_PAIRS = {
                     }
 
 
-def test_trie():
-    trie = Trie()
-    ed = ErrorDetector()
-    with open("trietest.txt", 'r', encoding='utf8') as f:
-        lines = f.readlines()
-
-    for line in lines:
-        pair = tuple(line.split(" "))
-        ed.add_nil(pair[0], pair[1], int(pair[2]))
-    print("Done")
-
-
 def test_dependency_pairs():
     ed = ErrorDetector()
     ed.detect_errors("TuebaDZ_test.txt")
@@ -57,6 +45,19 @@ def test_dependency_pairs():
             print("The nucleus " + key[0] + " " + key[1] + " was not found")
             sys.exit(1)
     print("Success")
+
+
+def test_trie():
+    ed = ErrorDetector()
+    with open("trietest.txt", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    for line_yeah in lines:
+        line = line_yeah.split(" ")
+        ed.nil.add_item(line[0], line[1], int(line[2]), int(line[3]), int(line[4]))
+    ed.nil.pretty_print()
+    ed.save_nil()
+    ed.load_nil()
+    ed.nil.pretty_print()
 
 
 if __name__ == "__main__":
