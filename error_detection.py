@@ -27,7 +27,7 @@ class ErrorDetector:
                     for item in items:
                         nil_items = self.nil.find_pairs(word1, word2)
                         for nil_item in nil_items:
-                            self.variation_nuclei.append((item, nil_item))
+                            self.apply_nil_internal_context_heuristics(item, nil_item)
 
     def analyze_sentences(self):
         """
@@ -39,20 +39,35 @@ class ErrorDetector:
         with progressbar.ProgressBar(max_value=len(self.sentences)//20) as bar:
             for i in range(len(self.sentences)//20):
                 bar.update(i)
+                sentence = self.sentences[i]
 
                 # go through each word in the sentence
-                # skip sent_id, text info, punctuation & merged words
-                sentence = [item for item in self.sentences[i] if not item.startswith('#')]
                 for item in sentence:
-                    item = item.split('\t')
-                    if '-' in item[0] or item[3] == 'PUNCT':
+                    if item[3] == 'PUNCT':
                         continue
-
-                    self.collect_dependency_pair(sentence, item, i+1)
-                    self.collect_nil_items(sentence, item, i+1)
+                    self.collect_dependency_pair(sentence, item, i)
+                    self.collect_nil_items(sentence, item, i)
 
     def apply_nil_internal_context_heuristics(self, item1: Item, item2: Item):
-        self.found += 1
+        """checks whether the two nuclei have the same internal context"""
+
+        def get_internal_context(item: Item):
+            """helper method """
+            internal_context = list()
+            sentence = self.sentences[item.sentence]
+            for i in range(item.word1, item.word2 - 1):
+                line = sentence[i]
+                if line[3] == 'PUNCT':
+                    continue
+                internal_context.append(line[1])
+            return internal_context
+
+        context1 = get_internal_context(item1)
+        context2 = get_internal_context(item2)
+
+        if context1 == context2:
+            if context1:
+                self.variation_nuclei.append((item1, item2))
 
     def collect_dependency_pair(self, sentence: list, item: list, sentence_id: int):
         """creates the dependency pair of the item in the sentence
@@ -65,7 +80,7 @@ class ErrorDetector:
         label = item[7]
 
         # create the dependency pair regarding directedness
-        head = sentence[head_id - 1].split('\t')[1]
+        head = sentence[head_id - 1][1]
         if head_id == 0:
             label = 'root-L'
             vn = self.nuclei.add_item('root', word, sentence_id, 0, word_id, label)
@@ -92,10 +107,10 @@ class ErrorDetector:
 
         # search the other items in the sentence
         for i in range(word_id, len(sentence)):
-            other_item = sentence[i].split('\t')
-            if '-' in other_item[0] or other_item[3] == 'PUNCT':
-                continue
+            other_item = sentence[i]
 
+            if other_item[3] == 'PUNCT':
+                continue
             other_word = other_item[1]
             other_word_id = int(other_item[0])
             other_head_id = int(other_item[6])
@@ -119,15 +134,16 @@ class ErrorDetector:
 
         print("Start analysis...")
         self.analyze_sentences()
+        print("\n\n")
+        self.pretty_print_variation_nuclei()
 
         print("Analyzing NIL items...")
         self.analyze_nil()
 
         print("\n\n")
         self.pretty_print_variation_nuclei()
-        self.save_variation_nuclei()
-        self.load_variation_nuclei()
-        self.pretty_print_variation_nuclei()
+        # self.save_variation_nuclei()
+        # self.load_variation_nuclei()
 
     def load_variation_nuclei(self):
         """loads the "raw" variation nuclei (without heuristics) from a json file"""
@@ -165,7 +181,13 @@ class ErrorDetector:
                     self.sentences.append(sentence)
                     sentence = list()
                 else:
-                    sentence.append(line)
+
+                    # prepare & filter out the lines
+                    line = line.split('\t')
+                    if line[0].startswith('#') or '-' in line[0]:
+                        pass
+                    else:
+                        sentence.append(line)
                 line = f.readline()
             if sentence:
                 self.sentences.append(sentence)

@@ -45,6 +45,8 @@ class Trie(dict):
             if word2 in level2:
                 for other_item in level2[word2]:
                     # TODO: implement overlap handling
+
+                    # this will always be false for NIL-NIL comparison
                     if item.label != other_item.label:
                         variation_nucleus = (item, other_item)
                 level2[word2].append(item)
