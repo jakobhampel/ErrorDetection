@@ -69,6 +69,46 @@ class ErrorDetector:
             if context1:
                 self.variation_nuclei.append((item1, item2))
 
+    def apply_non_fringe_heuristic(self, item1: Item, item2: Item):
+        """compares the surrounding words of the two nucleus items"""
+
+        def get_surrounding(item: Item):
+            """helper method"""
+            sentence = self.sentences[item.sentence]
+            l1, r1, l2, r2 = "", "", "", ""
+
+            if item.word1 > 1:
+                l1_item = sentence[item.word1 - 2]
+                if l1_item[3] == 'PUNCT':
+                    if item.word1 > 2:
+                        l1_item = sentence[item.word1 - 3]
+                l1 = l1_item[1]
+
+            r1_item = sentence[item.word1]
+            if r1_item[3] == 'PUNCT':
+                r1_item = sentence[item.word1 + 1]
+            r1 = r1_item[1]
+
+            l2_item = sentence[item.word2 - 2]
+            if l2_item[3] == 'PUNCT':
+                l2_item = sentence[item.word2 - 3]
+            l2 = l2_item[1]
+
+            if item.word2 < len(sentence) - 1:
+                r2_item = sentence[item.word2]
+                if r2_item[3] == 'PUNCT':
+                    if item.word2 < len(sentence) - 2:
+                        r2_item = sentence[item.word2 + 1]
+                r2 = r2_item[1]
+
+            return [l1, r1, l2, r2]
+
+        context1 = get_surrounding(item1)
+        context2 = get_surrounding(item2)
+
+        if context1 == context2:
+            self.variation_nuclei.append((item1, item2))
+
     def collect_dependency_pair(self, sentence: list, item: list, sentence_id: int):
         """creates the dependency pair of the item in the sentence
         & checks for variation nuclei within the already stored nuclei"""
@@ -94,7 +134,7 @@ class ErrorDetector:
             return
 
         if vn:
-            self.variation_nuclei.append(vn)
+            self.apply_non_fringe_heuristic(vn[0], vn[1])
 
     def collect_nil_items(self, sentence: list, item: list, sentence_id: int):
         """iterates through the sentence and fills up the trie structure
@@ -164,7 +204,7 @@ class ErrorDetector:
         """
         print("I found {} variation nuclei. Here are the first 20: \n".format(len(self.variation_nuclei)))
         df = pd.DataFrame(self.variation_nuclei[:20], columns=["pair1", "pair2"])
-        print(df)
+        # print(df)
 
     def read_data(self, filename: str) -> None:
         """
