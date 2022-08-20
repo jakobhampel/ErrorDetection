@@ -5,10 +5,17 @@ import json
 from trie import Trie, Item
 
 
+# control the applied heuristics by setting these constants
+APPLY_NON_FRINGE_HEURISTIC = True
+APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC = True
+APPLY_DEPENDENCY_CONTEXT_HEURISTIC = True
+
+
 class ErrorDetector:
     def __init__(self):
         self.sentences = list()
         self.nuclei = Trie()
+        self.variation_nuclei_raw = list()
         self.variation_nuclei = list()
         self.nil = Trie()
         self.found = 0
@@ -27,7 +34,11 @@ class ErrorDetector:
                     for item in items:
                         nil_items = self.nil.find_pairs(word1, word2)
                         for nil_item in nil_items:
-                            self.apply_nil_internal_context_heuristics(item, nil_item)
+                            """if isinstance(item, set):
+                                for overlap in item:
+                                    self.apply_nil_internal_context_heuristics(overlap, nil_item)
+                            else:"""
+                            self.variation_nuclei_raw.append((item, nil_item))
 
     def analyze_sentences(self):
         """
@@ -36,8 +47,8 @@ class ErrorDetector:
         """
 
         # init progressbar
-        with progressbar.ProgressBar(max_value=len(self.sentences)//20) as bar:
-            for i in range(len(self.sentences)//20):
+        with progressbar.ProgressBar(max_value=len(self.sentences) // 5) as bar:
+            for i in range(len(self.sentences) // 5):
                 bar.update(i)
                 sentence = self.sentences[i]
 
@@ -47,6 +58,46 @@ class ErrorDetector:
                         continue
                     self.collect_dependency_pair(sentence, item, i)
                     self.collect_nil_items(sentence, item, i)
+
+    def apply_heuristics(self):
+        """wrapper method for the other heuristics methods"""
+        for item1, item2 in self.variation_nuclei_raw:
+            if item2.label:
+                if APPLY_NON_FRINGE_HEURISTIC:
+                    self.apply_non_fringe_heuristic(item1, item2)
+                else:
+                    self.variation_nuclei.append((item1, item2))
+            else:
+                if APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC:
+                    self.apply_nil_internal_context_heuristics(item1, item2)
+                else:
+                    self.variation_nuclei.append((item1, item2))
+
+        if APPLY_DEPENDENCY_CONTEXT_HEURISTIC:
+            filtered = list()
+            for item1, item2 in self.variation_nuclei:
+                cur_vn = self.apply_dependency_context_heuristic(item1, item2)
+                if cur_vn:
+                    filtered.append(cur_vn)
+            self.variation_nuclei = filtered
+
+    def apply_dependency_context_heuristic(self, item1: Item, item2: Item):
+        """checks whether the head of the first variation nucleus is used in the same function in the other instance"""
+        sentence1 = self.sentences[item1.sentence]
+        head = sentence1[item1.head() - 1]
+        head_function = head[7]
+
+        sentence2 = self.sentences[item2.sentence]
+        if item1.label.endswith('L'):
+            other_item = sentence2[item2.word1 - 1]
+        else:
+            other_item = sentence2[item2.word2 - 1]
+        other_function = other_item[7]
+
+        if head_function == other_function:
+            return item1, item2
+        else:
+            return None
 
     def apply_nil_internal_context_heuristics(self, item1: Item, item2: Item):
         """checks whether the two nuclei have the same internal context"""
@@ -134,7 +185,7 @@ class ErrorDetector:
             return
 
         if vn:
-            self.apply_non_fringe_heuristic(vn[0], vn[1])
+            self.variation_nuclei_raw.append(vn)
 
     def collect_nil_items(self, sentence: list, item: list, sentence_id: int):
         """iterates through the sentence and fills up the trie structure
@@ -170,24 +221,31 @@ class ErrorDetector:
 
         print("Read data...")
         self.read_data(filename)
-        print("Done.")
-
-        print("Start analysis...")
         self.analyze_sentences()
         print("\n\n")
-        self.pretty_print_variation_nuclei()
+        print("I found {} variation nuclei without heuristics. \n".format(len(self.variation_nuclei_raw)))
 
-        print("Analyzing NIL items...")
         self.analyze_nil()
+        print("After adding NIL items, "
+              "I found {} variation nuclei without heuristics. \n\n\n".format(len(self.variation_nuclei_raw)))
+        self.apply_heuristics()
+        print("After applying heuristics, I found {} variation nuclei. \n".format(len(self.variation_nuclei)))
 
-        print("\n\n")
-        self.pretty_print_variation_nuclei()
-        # self.save_variation_nuclei()
-        # self.load_variation_nuclei()
+        """self.pretty_print_variation_nuclei()
+        self.save_variation_nuclei()
+        old = self.load_variation_nuclei()
+
+        different = list()
+        for vn in self.variation_nuclei:
+            if vn not in old:
+                different.append(vn)
+        df = pd.DataFrame(different, columns=["pair1", "pair2"])
+        print(df)"""
 
     def load_variation_nuclei(self):
-        """loads the "raw" variation nuclei (without heuristics) from a json file"""
-        self.variation_nuclei.clear()
+        """loads the variation nuclei from a json file"""
+        # self.variation_nuclei.clear()
+        result = list()
         with open("data/variationNuclei.json", "r") as fp:
             variation_nuclei = json.load(fp)
 
@@ -196,15 +254,33 @@ class ErrorDetector:
             item2 = vn[1]
             cur_item1 = Item(item1[0], item1[1], item1[2], item1[3])
             cur_item2 = Item(item2[0], item2[1], item2[2], item2[3])
-            self.variation_nuclei.append((cur_item1, cur_item2))
+            result.append((cur_item1, cur_item2))
+        return result
 
     def pretty_print_variation_nuclei(self) -> None:
         """
         prints the variation nuclei as a dataframe
         """
-        print("I found {} variation nuclei. Here are the first 20: \n".format(len(self.variation_nuclei)))
+        print("I found {} variation nuclei. Here are they: \n".format(len(self.variation_nuclei)))
+
+        """for item1, item2 in self.variation_nuclei:
+            print('\n')
+            sentence1 = self.sentences[item1.sentence]
+            sentence2 = self.sentences[item2.sentence]
+
+            item1_word1 = sentence1[item1.word1 - 1][1]
+            item1_word2 = sentence1[item1.word2 - 1][1]
+            item2_word1 = sentence2[item2.word1 - 1][1]
+            item2_word2 = sentence2[item2.word2 - 1][1]
+
+            label1 = item1.label if item1.label else "NIL"
+            label2 = item2.label if item2.label else "NIL"
+            print("Sentence " + str(item1.sentence) + " and " + str(item2.sentence))
+            print(item1_word1 + "\t" + item1_word2 + "\t" + label1)
+            print(item2_word1 + "\t" + item2_word2 + "\t" + label2)"""
+
         df = pd.DataFrame(self.variation_nuclei[:20], columns=["pair1", "pair2"])
-        # print(df)
+        print(df)
 
     def read_data(self, filename: str) -> None:
         """
@@ -227,6 +303,7 @@ class ErrorDetector:
                     if line[0].startswith('#') or '-' in line[0]:
                         pass
                     else:
+                        # line[1] = line[1].lower()
                         sentence.append(line)
                 line = f.readline()
             if sentence:

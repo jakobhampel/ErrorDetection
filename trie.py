@@ -30,6 +30,12 @@ class Item:
     def __str__(self):
         return "{} - {} - {} : {}".format(self.sentence, self.word1, self.word2, self.label if self.label else "NIL")
 
+    def __eq__(self, other):
+        return (self.sentence == other.sentence and
+                self.word1 == other.word1 and
+                self.word2 == other.word2 and
+                self.label == other.label)
+
 
 class Trie(dict):
     """implementation of a dictionary storing word pairs trie-wise"""
@@ -40,15 +46,38 @@ class Trie(dict):
         """ adds an item to the trie structure, returns a variation nucleus, if detected"""
         variation_nucleus = tuple()
         item = Item(sentence_id, word1_id, word2_id, label)
+
         if word1 in self:
             level2 = self[word1]
             if word2 in level2:
-                for other_item in level2[word2]:
-                    # TODO: implement overlap handling
 
-                    # this will always be false for NIL-NIL comparison
-                    if item.label != other_item.label:
-                        variation_nucleus = (item, other_item)
+                # NIL trie does not have to do this
+                if label:
+                    for other_item in level2[word2]:
+                        """head_id = word1_id if label.endswith('L') else word2_id
+                        # go through the set of overlapping labels
+                        if isinstance(other_item, set):
+                            variation = True
+                            for overlap in other_item:
+                                if overlap.sentence == sentence_id and overlap.head() == head_id:
+                                    other_item.add(item)
+                                    variation = False
+                                    break
+                                elif overlap.label == label:
+                                    variation = False
+                            if variation:
+                                variation_nucleus = (item, other_item)
+                        else:
+                            # check for overlap
+                            if other_item.sentence == sentence_id and other_item.head() == head_id:
+                                level2[word2].remove(other_item)
+                                overlapping_items = {other_item, item}
+                                level2[word2].append(overlapping_items)"""
+
+                        # check for variation nuclei
+                        if item.label != other_item.label:
+                            variation_nucleus = (item, other_item)
+
                 level2[word2].append(item)
             else:
                 level2[word2] = [item]
