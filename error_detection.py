@@ -32,6 +32,9 @@ class ErrorDetector:
                 bar.update(count)
                 for word2, items in level2.items():
                     for item in items:
+                        if len(item.label) > 1:
+                            # skip items with overlaps
+                            continue
                         nil_items = self.nil.find_pairs(word1, word2)
                         for nil_item in nil_items:
                             """if isinstance(item, set):
@@ -47,8 +50,8 @@ class ErrorDetector:
         """
 
         # init progressbar
-        with progressbar.ProgressBar(max_value=len(self.sentences) // 5) as bar:
-            for i in range(len(self.sentences) // 5):
+        with progressbar.ProgressBar(max_value=len(self.sentences) // 20) as bar:
+            for i in range(len(self.sentences) // 20):
                 bar.update(i)
                 sentence = self.sentences[i]
 
@@ -88,11 +91,14 @@ class ErrorDetector:
         head_function = head[7]
 
         sentence2 = self.sentences[item2.sentence]
-        if item1.label.endswith('L'):
-            other_item = sentence2[item2.word1 - 1]
+        item1_label = item1.get_label()
+        if isinstance(item1_label, set):
+            other = sentence2[item2.head() - 1]
+        elif item1_label.endswith('L'):
+            other = sentence2[item2.word1 - 1]
         else:
-            other_item = sentence2[item2.word2 - 1]
-        other_function = other_item[7]
+            other = sentence2[item2.word2 - 1]
+        other_function = other[7]
 
         if head_function == other_function:
             return item1, item2
@@ -184,8 +190,8 @@ class ErrorDetector:
         else:
             return
 
-        if vn:
-            self.variation_nuclei_raw.append(vn)
+        for v in vn:
+            self.variation_nuclei_raw.append(v)
 
     def collect_nil_items(self, sentence: list, item: list, sentence_id: int):
         """iterates through the sentence and fills up the trie structure
@@ -262,23 +268,6 @@ class ErrorDetector:
         prints the variation nuclei as a dataframe
         """
         print("I found {} variation nuclei. Here are they: \n".format(len(self.variation_nuclei)))
-
-        """for item1, item2 in self.variation_nuclei:
-            print('\n')
-            sentence1 = self.sentences[item1.sentence]
-            sentence2 = self.sentences[item2.sentence]
-
-            item1_word1 = sentence1[item1.word1 - 1][1]
-            item1_word2 = sentence1[item1.word2 - 1][1]
-            item2_word1 = sentence2[item2.word1 - 1][1]
-            item2_word2 = sentence2[item2.word2 - 1][1]
-
-            label1 = item1.label if item1.label else "NIL"
-            label2 = item2.label if item2.label else "NIL"
-            print("Sentence " + str(item1.sentence) + " and " + str(item2.sentence))
-            print(item1_word1 + "\t" + item1_word2 + "\t" + label1)
-            print(item2_word1 + "\t" + item2_word2 + "\t" + label2)"""
-
         df = pd.DataFrame(self.variation_nuclei[:20], columns=["pair1", "pair2"])
         print(df)
 
