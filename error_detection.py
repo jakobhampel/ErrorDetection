@@ -12,6 +12,9 @@ APPLY_DEPENDENCY_CONTEXT_HEURISTIC = True
 
 
 class ErrorDetector:
+    """this class provides an error detection for the TuebaDZ Treebank
+    the functions strongly depend on each other; detect_errors() connects the whole process"""
+
     def __init__(self):
         self.sentences = list()
         self.nuclei = Trie()
@@ -50,8 +53,8 @@ class ErrorDetector:
         """
 
         # init progressbar
-        with progressbar.ProgressBar(max_value=len(self.sentences) // 20) as bar:
-            for i in range(len(self.sentences) // 20):
+        with progressbar.ProgressBar(max_value=len(self.sentences) // 4000) as bar:
+            for i in range(len(self.sentences) // 4000):
                 bar.update(i)
                 sentence = self.sentences[i]
 
@@ -212,8 +215,23 @@ class ErrorDetector:
             other_word_id = int(other_item[0])
             other_head_id = int(other_item[6])
 
-            # the two items must not have a dependency relation
-            if head_id != other_word_id and other_head_id != word_id:
+            # skip nuclei which are type-identical to
+            # and overlap with a genuine dependency relation in the same sentence
+            overlap = False
+            for j in range(word_id, len(sentence)):
+                sus = sentence[j]
+                if sus[1] == other_word:
+                    if int(sus[6]) == word_id or head_id == int(sus[0]):
+                        overlap = True
+                        break
+            for j in range(0, other_word_id - 1):
+                sus = sentence[j]
+                if sus[1] == word:
+                    if int(sus[6]) == other_word_id or other_head_id == int(sus[0]):
+                        overlap = True
+                        break
+
+            if not overlap:
                 self.nil.add_item(word, other_word, sentence_id, word_id, other_word_id)
 
     def detect_errors(self, filename: str):
