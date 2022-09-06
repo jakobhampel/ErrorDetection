@@ -53,8 +53,8 @@ class ErrorDetector:
         """
 
         # init progressbar
-        with progressbar.ProgressBar(max_value=len(self.sentences) // 4000) as bar:
-            for i in range(len(self.sentences) // 4000):
+        with progressbar.ProgressBar(max_value=len(self.sentences)) as bar:
+            for i in range(len(self.sentences)):
                 bar.update(i)
                 sentence = self.sentences[i]
 
@@ -233,6 +233,10 @@ class ErrorDetector:
 
             if not overlap:
                 self.nil.add_item(word, other_word, sentence_id, word_id, other_word_id)
+
+            """# the two items must not have a dependency relation
+            if head_id != other_word_id and other_head_id != word_id:
+                self.nil.add_item(word, other_word, sentence_id, word_id, other_word_id)"""
 
     def detect_errors(self, filename: str):
         """ 'main' method to use the functions in this class"""
