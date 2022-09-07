@@ -63,7 +63,7 @@ class ErrorDetector:
                     if item[3] == 'PUNCT':
                         continue
                     self.collect_dependency_pair(sentence, item, i)
-                    self.collect_nil_items(sentence, item, i)
+                    # self.collect_nil_items(sentence, item, i)
 
     def apply_heuristics(self):
         """wrapper method for the other heuristics methods"""
@@ -142,7 +142,9 @@ class ErrorDetector:
                 if l1_item[3] == 'PUNCT':
                     if item.word1 > 2:
                         l1_item = sentence[item.word1 - 3]
-                l1 = l1_item[1]
+                        l1 = l1_item[1] if l1_item[3] != 'PUNCT' else ""
+                else:
+                    l1 = l1_item[1]
 
             r1_item = sentence[item.word1]
             if r1_item[3] == 'PUNCT':
@@ -154,17 +156,27 @@ class ErrorDetector:
                 l2_item = sentence[item.word2 - 3]
             l2 = l2_item[1]
 
-            if item.word2 < len(sentence) - 1:
+            if item.word2 < len(sentence):
                 r2_item = sentence[item.word2]
                 if r2_item[3] == 'PUNCT':
-                    if item.word2 < len(sentence) - 2:
+                    if item.word2 < len(sentence) - 1:
                         r2_item = sentence[item.word2 + 1]
-                r2 = r2_item[1]
+                        r2 = r2_item[1] if r2_item[3] != 'PUNCT' else ""
+                else:
+                    r2 = r2_item[1]
 
             return [l1, r1, l2, r2]
 
         context1 = get_surrounding(item1)
         context2 = get_surrounding(item2)
+
+
+
+        accept = True
+        for c1, c2 in zip(context1, context2):
+            if c1 and c2:
+                if c1 != c2:
+                    accept = False
 
         if context1 == context2:
             self.variation_nuclei.append((item1, item2))
@@ -258,6 +270,7 @@ class ErrorDetector:
               "I found {} variation nuclei without heuristics. \n\n\n".format(len(self.variation_nuclei_raw)))
         self.apply_heuristics()
         print("After applying heuristics, I found {} variation nuclei. \n".format(len(self.variation_nuclei)))
+        # self.save_variation_nuclei()
 
         """self.pretty_print_variation_nuclei()
         self.save_variation_nuclei()
@@ -325,8 +338,7 @@ class ErrorDetector:
 
         variation_nuclei = list()
         for vn in self.variation_nuclei:
-            temp = vn[0]
-            item1 = temp.to_list()
+            item1 = vn[0].to_list()
             item2 = vn[1].to_list()
             variation_nuclei.append((item1, item2))
 
