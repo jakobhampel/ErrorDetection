@@ -33,6 +33,9 @@ class ErrorDetector:
             count = 0
             for word1, level2 in self.nuclei.items():
                 count += 1
+                tenth = len(self.nuclei) // 10
+                if count % tenth == 0:
+                    print("Processed a tenth")
                 bar.update(count)
                 for word2, items in level2.items():
                     for item in items:
@@ -179,7 +182,7 @@ class ErrorDetector:
                 if c1 != c2:
                     accept = False
 
-        return True if accept else False
+        return True if context1 == context2 else False
 
     def apply_pos_heuristic(self, item1: Item, item2: Item):
         """compares the part-of-speech tags of the words"""
