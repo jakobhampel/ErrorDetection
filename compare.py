@@ -18,23 +18,23 @@ def read_vn(filename):
 
 
 def compare_results():
-    version1 = "data/variationNuclei.json"
-    version2 = "data/variationNuclei1.json"
-    version3 = "data/variationNuclei2.json"
+    version1 = "data/variationNuclei1.json"
+    version2 = "data/variationNuclei2.json"
 
     vn1 = read_vn(version1)
     vn2 = read_vn(version2)
-    vn3 = read_vn(version3)
 
     result = list()
-    for v in vn1:
-        if v not in vn3:
-            if v not in vn2:
-                result.append(v)
+    for v in vn2:
+        if v not in vn1:
+            result.append(v)
 
     print(len(result))
     for r in result:
         print(r)
+        print("https://weblicht.sfs.uni-tuebingen.de/Tundra/tuebadz-110-dp/{}?access=private ".format(str(int(r[0][0]) + 1)))
+        print("https://weblicht.sfs.uni-tuebingen.de/Tundra/tuebadz-110-dp/{}?access=private ".format(str(int(r[1][0]) + 1)))
+        print("\n")
 
 
 if __name__ == "__main__":

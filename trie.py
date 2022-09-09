@@ -36,7 +36,7 @@ class Item:
 
     def to_list(self):
         """returns a list version of itself (for json storing purposes)"""
-        return[self.sentence, self.word1, self.word2, [la for la in self.label]]
+        return[self.sentence, self.word1, self.word2, [la for la in self.label] if self.label else None]
 
     def __str__(self):
         return "{} - {} - {} : {}".format(self.sentence, self.word1, self.word2, self.label if self.label else "NIL")

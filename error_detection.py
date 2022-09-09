@@ -9,6 +9,7 @@ from trie import Trie, Item
 APPLY_NON_FRINGE_HEURISTIC = True
 APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC = True
 APPLY_DEPENDENCY_CONTEXT_HEURISTIC = True
+APPLY_POS_HEURISTIC = False
 
 
 class ErrorDetector:
@@ -63,29 +64,33 @@ class ErrorDetector:
                     if item[3] == 'PUNCT':
                         continue
                     self.collect_dependency_pair(sentence, item, i)
-                    # self.collect_nil_items(sentence, item, i)
+                    self.collect_nil_items(sentence, item, i)
 
     def apply_heuristics(self):
         """wrapper method for the other heuristics methods"""
-        for item1, item2 in self.variation_nuclei_raw:
-            if item2.label:
-                if APPLY_NON_FRINGE_HEURISTIC:
-                    self.apply_non_fringe_heuristic(item1, item2)
-                else:
-                    self.variation_nuclei.append((item1, item2))
-            else:
-                if APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC:
-                    self.apply_nil_internal_context_heuristics(item1, item2)
-                else:
-                    self.variation_nuclei.append((item1, item2))
 
-        if APPLY_DEPENDENCY_CONTEXT_HEURISTIC:
-            filtered = list()
-            for item1, item2 in self.variation_nuclei:
-                cur_vn = self.apply_dependency_context_heuristic(item1, item2)
-                if cur_vn:
-                    filtered.append(cur_vn)
-            self.variation_nuclei = filtered
+        # init progressbar
+        with progressbar.ProgressBar(max_value=len(self.variation_nuclei_raw)) as bar:
+            for i in range(len(self.variation_nuclei_raw)):
+                bar.update(i)
+
+                item1, item2 = self.variation_nuclei_raw[i]
+                accept = True
+                if item2.label:
+                    if APPLY_NON_FRINGE_HEURISTIC:
+                        accept = self.apply_non_fringe_heuristic(item1, item2)
+                else:
+                    if APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC:
+                        accept = self.apply_nil_internal_context_heuristics(item1, item2)
+
+                if APPLY_DEPENDENCY_CONTEXT_HEURISTIC and accept:
+                    accept = self.apply_dependency_context_heuristic(item1, item2)
+
+                if APPLY_POS_HEURISTIC and accept:
+                    accept = self.apply_pos_heuristic(item1, item2)
+
+                if accept:
+                    self.variation_nuclei.append((item1, item2))
 
     def apply_dependency_context_heuristic(self, item1: Item, item2: Item):
         """checks whether the head of the first variation nucleus is used in the same function in the other instance"""
@@ -103,10 +108,7 @@ class ErrorDetector:
             other = sentence2[item2.word2 - 1]
         other_function = other[7]
 
-        if head_function == other_function:
-            return item1, item2
-        else:
-            return None
+        return True if head_function == other_function else False
 
     def apply_nil_internal_context_heuristics(self, item1: Item, item2: Item):
         """checks whether the two nuclei have the same internal context"""
@@ -127,7 +129,8 @@ class ErrorDetector:
 
         if context1 == context2:
             if context1:
-                self.variation_nuclei.append((item1, item2))
+                return True
+        return False
 
     def apply_non_fringe_heuristic(self, item1: Item, item2: Item):
         """compares the surrounding words of the two nucleus items"""
@@ -170,16 +173,29 @@ class ErrorDetector:
         context1 = get_surrounding(item1)
         context2 = get_surrounding(item2)
 
-
-
         accept = True
         for c1, c2 in zip(context1, context2):
             if c1 and c2:
                 if c1 != c2:
                     accept = False
 
-        if context1 == context2:
-            self.variation_nuclei.append((item1, item2))
+        return True if accept else False
+
+    def apply_pos_heuristic(self, item1: Item, item2: Item):
+        """compares the part-of-speech tags of the words"""
+
+        def get_pos_tags(item: Item):
+            """helper method to retrieve the pos tags"""
+            sentence = self.sentences[item.sentence]
+            pos1 = sentence[item.word1 - 1][3]
+            pos2 = sentence[item.word2 - 1][3]
+
+            return pos1, pos2
+
+        item1_pos = get_pos_tags(item1)
+        item2_pos = get_pos_tags(item2)
+
+        return True if item1_pos == item2_pos else False
 
     def collect_dependency_pair(self, sentence: list, item: list, sentence_id: int):
         """creates the dependency pair of the item in the sentence
@@ -259,18 +275,17 @@ class ErrorDetector:
         self.variation_nuclei.clear()
         self.nil.clear()
 
-        print("Read data...")
+        print("Read data...\n")
         self.read_data(filename)
         self.analyze_sentences()
-        print("\n\n")
         print("I found {} variation nuclei without heuristics. \n".format(len(self.variation_nuclei_raw)))
 
         self.analyze_nil()
         print("After adding NIL items, "
-              "I found {} variation nuclei without heuristics. \n\n\n".format(len(self.variation_nuclei_raw)))
+              "I found {} variation nuclei without heuristics. \n".format(len(self.variation_nuclei_raw)))
         self.apply_heuristics()
         print("After applying heuristics, I found {} variation nuclei. \n".format(len(self.variation_nuclei)))
-        # self.save_variation_nuclei()
+        self.save_variation_nuclei()
 
         """self.pretty_print_variation_nuclei()
         self.save_variation_nuclei()
