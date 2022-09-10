@@ -19,36 +19,33 @@ class ErrorDetector:
     def __init__(self):
         self.sentences = list()
         self.nuclei = Trie()
+        self.nuclei_count = 0
         self.variation_nuclei_raw = list()
         self.variation_nuclei = list()
         self.nil = Trie()
-        self.found = 0
 
     def analyze_nil(self):
         """
         iterates through all the nuclei previously collected in analyze_sentences()
         and searches for variation nuclei among the NIL items
         """
-        with progressbar.ProgressBar(max_value=len(self.nuclei)) as bar:
+        with progressbar.ProgressBar(max_value=self.nuclei_count) as bar:
             count = 0
             for word1, level2 in self.nuclei.items():
-                count += 1
-                tenth = len(self.nuclei) // 10
-                if count % tenth == 0:
-                    print("Processed a tenth")
-                bar.update(count)
                 for word2, items in level2.items():
+                    nil_items = self.nil.find_pairs(word1, word2)
+
                     for item in items:
                         if len(item.label) > 1:
                             # skip items with overlaps
                             continue
-                        nil_items = self.nil.find_pairs(word1, word2)
                         for nil_item in nil_items:
-                            """if isinstance(item, set):
-                                for overlap in item:
-                                    self.apply_nil_internal_context_heuristics(overlap, nil_item)
-                            else:"""
                             self.variation_nuclei_raw.append((item, nil_item))
+
+                        count += 1
+                        if count == 181301:
+                            print("Hi")
+                        bar.update(count)
 
     def analyze_sentences(self):
         """
@@ -67,6 +64,7 @@ class ErrorDetector:
                     if item[3] == 'PUNCT':
                         continue
                     self.collect_dependency_pair(sentence, item, i)
+                    self.nuclei_count += 1
                     self.collect_nil_items(sentence, item, i)
 
     def apply_heuristics(self):
@@ -277,6 +275,7 @@ class ErrorDetector:
         self.nuclei.clear()
         self.variation_nuclei.clear()
         self.nil.clear()
+        self.nuclei_count = 0
 
         print("Read data...\n")
         self.read_data(filename)
