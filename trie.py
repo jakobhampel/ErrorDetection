@@ -1,11 +1,16 @@
 class Item:
     """represents an item in CONLL-U format
     holds the location indices and a label (except for NIL items)"""
-    def __init__(self, sentence: int, word1: int, word2: int, label: str = None):
+    def __init__(self, sentence: int, word1: int, word2: int, label=None):
         self.sentence = sentence
         self.word1 = word1
         self.word2 = word2
-        self.label = {label} if label else None
+        if isinstance(label, set):
+            self.label = set()
+            for la in label:
+                self.label.add(la)
+        else:
+            self.label = {label} if label else None
 
     def get_label(self):
         """returns the label string if there is only one, else the set"""
@@ -39,7 +44,14 @@ class Item:
         return[self.sentence, self.word1, self.word2, [la for la in self.label] if self.label else None]
 
     def __str__(self):
-        return "{} - {} - {} : {}".format(self.sentence, self.word1, self.word2, self.label if self.label else "NIL")
+        if self.label:
+            label = ""
+            for la in self.label:
+                label = label + la + ", "
+            label = label[:-2]
+        else:
+            label = "NIL"
+        return "{} - {} - {} : {}".format(self.sentence, self.word1, self.word2, label)
 
     def __eq__(self, other):
         return (self.sentence == other.sentence and
@@ -73,7 +85,7 @@ class Trie(dict):
                             add_it = False
                         else:
                             # check for variation nuclei
-                            if item.label != other_item.label:
+                            if label not in other_item.label:
                                 variation_nucleus.append((item, other_item))
 
                 if add_it:

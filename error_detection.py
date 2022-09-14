@@ -43,8 +43,6 @@ class ErrorDetector:
                             self.variation_nuclei_raw.append((item, nil_item))
 
                         count += 1
-                        if count == 181301:
-                            print("Hi")
                         bar.update(count)
 
     def analyze_sentences(self):
