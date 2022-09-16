@@ -1,6 +1,7 @@
-"""offers functions to compare two json files of variation nuclei and detect the differences"""
+"""offers functions to post process json files of variation nuclei"""
 import json
 from trie import Item
+from collections import Counter
 
 
 def read_vn(filename):
@@ -50,11 +51,11 @@ def convert_to_txt(vn: list = None):
 
     if not vn:
         print("Get own VNs")
-        fn = "data/variationNuclei.json"
+        fn = "data/variationNuclei4.json"
         vn = read_vn(fn)
         print(len(vn))
 
-    out = "result/variationNuclei.txt"
+    out = "result/variationNuclei4.txt"
 
     with open(out, "w") as f:
         for i in range(len(vn)):
@@ -77,5 +78,81 @@ def convert_to_txt(vn: list = None):
             f.write("\n")
 
 
+def get_sentence_ids(filename: str):
+    """returns the set of sentence ids (no duplicates)"""
+    vn = read_vn(filename)
+    sentences = set()
+    for v in vn:
+        sentences.add(v[0].sentence + 1)
+        sentences.add(v[1].sentence + 1)
+    return sentences
+
+
+def get_label_pair_statistics(filename: str):
+    """returns the counts for the label pairs"""
+    vn = read_vn(filename)
+    pairs = list()
+    for v in vn:
+        (label1,) = v[0].label
+        label1 = label1[:-2]
+        if v[1].label:
+            (label2,) = v[1].label
+            label2 = label2[:-2]
+        else:
+            label2 = "NIL"
+
+        # this allows me to ignore the vice-versa versions
+        if (label2, label1) in pairs:
+            pairs.append((label2, label1))
+        else:
+            pairs.append((label1, label2))
+
+    counter = Counter(pairs)
+    return counter.most_common()
+
+
+def get_label_statistics(filename: str):
+    """returns the counts for the labels themselves"""
+    vn = read_vn(filename)
+    labels = list()
+    for v in vn:
+        (label1,) = v[0].label
+        if v[1].label:
+            (label2,) = v[1].label
+        else:
+            label2 = "NIL"
+        label1 = label1[:-2]
+        label2 = label2[:-2]
+        labels.append(label1)
+        labels.append(label2)
+
+    counter = Counter(labels)
+    return counter.most_common()
+
+
+def most_frequent_sentences(filename: str):
+    """returns the sentence ids that appear more than 10 times in the variation nuclei"""
+    vn = read_vn(filename)
+    sentences = list()
+    for v in vn:
+        sentences.append(v[0].sentence + 1)
+        sentences.append(v[1].sentence + 1)
+
+    counter = Counter(sentences)
+    return counter.most_common(20)
+
+
+def most_frequent_vn(filename: str):
+    """returns a list of all word pairs which appear more than 10 times in the variation nuclei"""
+    vn = read_vn(filename)
+    items = list()
+    for v in vn:
+        items.append(str(v[0]) + '    ' + v[2] + ' - ' + v[3])
+        items.append(str(v[1]) + '    ' + v[2] + ' - ' + v[3])
+
+    counter = Counter(items)
+    return counter.most_common(20)
+
+
 if __name__ == "__main__":
-    convert_to_txt()
+    get_label_pair_statistics("data/variationNuclei4.json")
