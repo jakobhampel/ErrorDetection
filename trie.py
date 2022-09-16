@@ -39,9 +39,9 @@ class Item:
             return False
         return False
 
-    def to_list(self):
+    def to_list(self, word1: str, word2: str):
         """returns a list version of itself (for json storing purposes)"""
-        return[self.sentence, self.word1, self.word2, [la for la in self.label] if self.label else None]
+        return[self.sentence, [self.word1, word1], [self.word2, word2], [la for la in self.label] if self.label else None]
 
     def __str__(self):
         if self.label:
@@ -51,7 +51,7 @@ class Item:
             label = label[:-2]
         else:
             label = "NIL"
-        return "{} - {} - {} : {}".format(self.sentence, self.word1, self.word2, label)
+        return "{} - {} - {} : {}".format(self.sentence + 1, self.word1, self.word2, label)
 
     def __eq__(self, other):
         return (self.sentence == other.sentence and

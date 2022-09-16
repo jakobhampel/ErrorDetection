@@ -8,7 +8,7 @@ from trie import Trie, Item
 # control the applied heuristics by setting these constants
 APPLY_NON_FRINGE_HEURISTIC = True
 APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC = True
-APPLY_DEPENDENCY_CONTEXT_HEURISTIC = True
+APPLY_DEPENDENCY_CONTEXT_HEURISTIC = False
 APPLY_POS_HEURISTIC = False
 
 
@@ -298,21 +298,6 @@ class ErrorDetector:
         df = pd.DataFrame(different, columns=["pair1", "pair2"])
         print(df)"""
 
-    def load_variation_nuclei(self):
-        """loads the variation nuclei from a json file"""
-        # self.variation_nuclei.clear()
-        result = list()
-        with open("data/variationNuclei.json", "r") as fp:
-            variation_nuclei = json.load(fp)
-
-        for vn in variation_nuclei:
-            item1 = vn[0]
-            item2 = vn[1]
-            cur_item1 = Item(item1[0], item1[1], item1[2], item1[3])
-            cur_item2 = Item(item2[0], item2[1], item2[2], item2[3])
-            result.append((cur_item1, cur_item2))
-        return result
-
     def pretty_print_variation_nuclei(self) -> None:
         """
         prints the variation nuclei as a dataframe
@@ -351,10 +336,18 @@ class ErrorDetector:
     def save_variation_nuclei(self):
         """saves the "raw" variation nuclei (without heuristics) into a json file"""
 
+        def get_plain_words(item: Item):
+            """helper method to retrieve the plain words"""
+            sentence = self.sentences[item.sentence]
+            w1 = sentence[item.word1 - 1][1]
+            w2 = sentence[item.word2 - 1][1]
+            return w1, w2
+
         variation_nuclei = list()
         for vn in self.variation_nuclei:
-            item1 = vn[0].to_list()
-            item2 = vn[1].to_list()
+            word1, word2 = get_plain_words(vn[0])
+            item1 = vn[0].to_list(word1, word2)
+            item2 = vn[1].to_list(word1, word2)
             variation_nuclei.append((item1, item2))
 
         with open("data/variationNuclei.json", "w") as fp:
