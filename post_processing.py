@@ -32,6 +32,28 @@ def check_overlaps():
     convert_to_txt(result)
 
 
+def collect_statistics(filename: str):
+    """calls the other methods to get all statistical information"""
+    unique_sentence_ids = get_sentence_ids(filename)
+    print("There are {} distinct sentences where variation nuclei were found.".format(str(len(unique_sentence_ids))))
+
+    print("\n\nThese are the sentences that occurred most often: \n")
+    for s in most_frequent_sentences(filename):
+        print(str(s[0]) + ';' + str(s[1]))
+
+    print("\n\nThese are the specific variation nuclei that occurred most often: \n")
+    for vn in most_frequent_vn(filename):
+        print(vn[0] + ';' + str(vn[1]))
+
+    print("\n\nThese are the labels that occurred in the variation nuclei: \n")
+    for label in get_label_statistics(filename):
+        print(label[0] + ';' + str(label[1]))
+
+    print("\n\nThese are the label pairs that occurred in the variation nuclei: \n")
+    for pair in get_label_pair_statistics(filename):
+        print(pair[0][0] + ';' + pair[0][1] + ';' + str(pair[1]))
+
+
 def compare_results():
     version1 = "data/variationNuclei2.json"
     version2 = "data/variationNuclei4.json"
@@ -81,6 +103,7 @@ def convert_to_txt(vn: list = None):
 def get_sentence_ids(filename: str):
     """returns the set of sentence ids (no duplicates)"""
     vn = read_vn(filename)
+    print(len(vn))
     sentences = set()
     for v in vn:
         sentences.add(v[0].sentence + 1)
@@ -93,13 +116,11 @@ def get_label_pair_statistics(filename: str):
     vn = read_vn(filename)
     pairs = list()
     for v in vn:
-        (label1,) = v[0].label
+        label1 = v[0].get_label_str()
+        label2 = v[1].get_label_str()
         label1 = label1[:-2]
-        if v[1].label:
-            (label2,) = v[1].label
+        if label2 != "NIL":
             label2 = label2[:-2]
-        else:
-            label2 = "NIL"
 
         # this allows me to ignore the vice-versa versions
         if (label2, label1) in pairs:
@@ -116,13 +137,11 @@ def get_label_statistics(filename: str):
     vn = read_vn(filename)
     labels = list()
     for v in vn:
-        (label1,) = v[0].label
-        if v[1].label:
-            (label2,) = v[1].label
-        else:
-            label2 = "NIL"
+        label1 = v[0].get_label_str()
+        label2 = v[1].get_label_str()
         label1 = label1[:-2]
-        label2 = label2[:-2]
+        if label2 != "NIL":
+            label2 = label2[:-2]
         labels.append(label1)
         labels.append(label2)
 
@@ -147,12 +166,16 @@ def most_frequent_vn(filename: str):
     vn = read_vn(filename)
     items = list()
     for v in vn:
-        items.append(str(v[0]) + '    ' + v[2] + ' - ' + v[3])
-        items.append(str(v[1]) + '    ' + v[2] + ' - ' + v[3])
+        item1 = v[0]
+        item2 = v[1]
+        cur1 = (str(item1.sentence + 1) + ';' + str(item1.word1) + ';' + str(item1.word2) + ';' + item1.get_label_str())
+        cur2 = (str(item2.sentence + 1) + ';' + str(item2.word1) + ';' + str(item2.word2) + ';' + item2.get_label_str())
+        items.append(cur1 + ';' + v[2] + ';' + v[3])
+        items.append(cur2 + ';' + v[2] + ';' + v[3])
 
     counter = Counter(items)
     return counter.most_common(20)
 
 
 if __name__ == "__main__":
-    get_label_pair_statistics("data/variationNuclei4.json")
+    collect_statistics("data/variationNuclei_2without4.json")

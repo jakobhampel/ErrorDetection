@@ -20,6 +20,16 @@ class Item:
         else:
             return self.label
 
+    def get_label_str(self):
+        if not self.label:
+            return "NIL"
+        elif len(self.label) == 1:
+            (label,) = self.label
+            return label
+        else:
+            print("There went something wrong")
+            return None
+
     def head(self):
         """returns the word which is the head of the pair"""
         if self.label:
