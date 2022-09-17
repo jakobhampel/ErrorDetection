@@ -8,8 +8,9 @@ from trie import Trie, Item
 # control the applied heuristics by setting these constants
 APPLY_NON_FRINGE_HEURISTIC = True
 APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC = True
-APPLY_DEPENDENCY_CONTEXT_HEURISTIC = False
-APPLY_POS_HEURISTIC = False
+APPLY_DEPENDENCY_CONTEXT_HEURISTIC = True
+APPLY_POS_HEURISTIC = True
+POS_FILTER = 'PRON'
 
 
 class ErrorDetector:
@@ -171,13 +172,6 @@ class ErrorDetector:
 
         context1 = get_surrounding(item1)
         context2 = get_surrounding(item2)
-
-        accept = True
-        for c1, c2 in zip(context1, context2):
-            if c1 and c2:
-                if c1 != c2:
-                    accept = False
-
         return True if context1 == context2 else False
 
     def apply_pos_heuristic(self, item1: Item, item2: Item):
@@ -194,7 +188,10 @@ class ErrorDetector:
         item1_pos = get_pos_tags(item1)
         item2_pos = get_pos_tags(item2)
 
-        return True if item1_pos == item2_pos else False
+        # filter out the nuclei which contain the POS_FILTER tag and differ wrt. their pos tags
+        if POS_FILTER in item1_pos or POS_FILTER in item2_pos:
+            return True if item1_pos == item2_pos else False
+        return True
 
     def collect_dependency_pair(self, sentence: list, item: list, sentence_id: int):
         """creates the dependency pair of the item in the sentence
@@ -261,10 +258,6 @@ class ErrorDetector:
             if not overlap:
                 self.nil.add_item(word, other_word, sentence_id, word_id, other_word_id)
 
-            """# the two items must not have a dependency relation
-            if head_id != other_word_id and other_head_id != word_id:
-                self.nil.add_item(word, other_word, sentence_id, word_id, other_word_id)"""
-
     def detect_errors(self, filename: str):
         """ 'main' method to use the functions in this class"""
 
@@ -285,26 +278,7 @@ class ErrorDetector:
               "I found {} variation nuclei without heuristics. \n".format(len(self.variation_nuclei_raw)))
         self.apply_heuristics()
         print("After applying heuristics, I found {} variation nuclei. \n".format(len(self.variation_nuclei)))
-        self.save_variation_nuclei()
-
-        """self.pretty_print_variation_nuclei()
-        self.save_variation_nuclei()
-        old = self.load_variation_nuclei()
-
-        different = list()
-        for vn in self.variation_nuclei:
-            if vn not in old:
-                different.append(vn)
-        df = pd.DataFrame(different, columns=["pair1", "pair2"])
-        print(df)"""
-
-    def pretty_print_variation_nuclei(self) -> None:
-        """
-        prints the variation nuclei as a dataframe
-        """
-        print("I found {} variation nuclei. Here are they: \n".format(len(self.variation_nuclei)))
-        df = pd.DataFrame(self.variation_nuclei[:20], columns=["pair1", "pair2"])
-        print(df)
+        # self.save_variation_nuclei()
 
     def read_data(self, filename: str) -> None:
         """

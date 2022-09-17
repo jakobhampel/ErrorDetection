@@ -33,7 +33,9 @@ def check_overlaps():
 
 
 def collect_statistics(filename: str):
-    """calls the other methods to get all statistical information"""
+    """calls the other methods to get all statistical information
+    prints out the results with semicolon-separator for easy copy-pasting it into a tabular version"""
+
     unique_sentence_ids = get_sentence_ids(filename)
     print("There are {} distinct sentences where variation nuclei were found.".format(str(len(unique_sentence_ids))))
 
@@ -55,15 +57,15 @@ def collect_statistics(filename: str):
 
 
 def compare_results():
-    version1 = "data/variationNuclei2.json"
-    version2 = "data/variationNuclei4.json"
+    version1 = "data/variationNuclei4_new.json"
+    version2 = "data/variationNuclei4_alternative.json"
 
     vn1 = read_vn(version1)
     vn2 = read_vn(version2)
 
     result = list()
-    for v in vn1:
-        if v not in vn2:
+    for v in vn2:
+        if v not in vn1:
             result.append(v)
 
     convert_to_txt(result)
@@ -73,11 +75,11 @@ def convert_to_txt(vn: list = None):
 
     if not vn:
         print("Get own VNs")
-        fn = "data/variationNuclei4.json"
+        fn = "data/variationNuclei4_differences.json"
         vn = read_vn(fn)
         print(len(vn))
 
-    out = "result/variationNuclei4.txt"
+    out = "result/variationNuclei4_differences.txt"
 
     with open(out, "w") as f:
         for i in range(len(vn)):
@@ -177,5 +179,17 @@ def most_frequent_vn(filename: str):
     return counter.most_common(20)
 
 
+def count_determiner(filename: str):
+    vn = read_vn(filename)
+    det = {"der", "die", "das", "dem", "den"}
+    result = 0
+    for v in vn:
+        w1 = v[2]
+        w2 = v[3]
+        if w1 in det or w2 in det:
+            result += 1
+    print(result)
+
+
 if __name__ == "__main__":
-    collect_statistics("data/variationNuclei_2without4.json")
+    compare_results()
