@@ -1,0 +1,61 @@
+# newdoc id = T990507.2
+# sent_id = s23589
+# text = Erst heute, in der Epoche der Massenindustrie, kommt dem einzelnen Objekt tatsächlich ein geringerer Seinsgrad zu als seiner Idee, nämlich seinem blue-print. "
+1	Erst	erst	ADV	ADV	_	2	advmod	_	TopoField=VF
+2	heute	heute	ADV	ADV	_	10	advmod	_	SpaceAfter=No|TopoField=VF
+3	,	,	PUNCT	$,	_	10	punct	_	TopoField=VF
+4	in	in	ADP	APPR	Case=Dat	6	case	_	Morph=d|TopoField=VF
+5	der	die	DET	ART	Case=Dat|Definite=Def|Gender=Fem|Number=Sing|PronType=Art	6	det	_	Morph=dsf|TopoField=VF
+6	Epoche	Epoche	NOUN	NN	Case=Dat|Gender=Fem|Number=Sing	2	appos	_	Morph=dsf|TopoField=VF
+7	der	die	DET	ART	Case=Gen|Definite=Def|Gender=Fem|Number=Sing|PronType=Art	8	det	_	Morph=gsf|TopoField=VF
+8	Massenindustrie	Massenindustrie	NOUN	NN	Case=Gen|Gender=Fem|Number=Sing	6	nmod:poss	_	SpaceAfter=No|Morph=gsf|TopoField=VF
+9	,	,	PUNCT	$,	_	10	punct	_	_
+10	kommt	zu#kommen	VERB	VVFIN	Mood=Ind|Number=Sing|Person=3|Tense=Pres|VerbForm=Fin	0	root	_	Morph=3sis|TopoField=LK
+11	dem	das	DET	ART	Case=Dat|Definite=Def|Gender=Neut|Number=Sing|PronType=Art	13	det	_	Morph=dsn|TopoField=MF
+12	einzelnen	einzeln	ADJ	ADJA	Case=Dat|Gender=Neut|Number=Sing	13	amod	_	Morph=dsn|TopoField=MF
+13	Objekt	Objekt	NOUN	NN	Case=Dat|Gender=Neut|Number=Sing	10	obj	_	Morph=dsn|TopoField=MF
+14	tatsächlich	tatsächlich	ADV	ADV	_	10	advmod	_	TopoField=MF
+15	ein	ein	DET	ART	Case=Nom|Definite=Ind|Gender=Masc|Number=Sing|PronType=Art	17	det	_	Morph=nsm|TopoField=MF
+16	geringerer	geringer	ADJ	ADJA	Case=Nom|Gender=Masc|Number=Sing	17	amod	_	Morph=nsm|TopoField=MF
+17	Seinsgrad	Seinsgrad	NOUN	NN	Case=Nom|Gender=Masc|Number=Sing	10	nsubj	_	Morph=nsm|TopoField=MF
+18	zu	zu	ADP	PTKVZ	_	10	compound:prt	_	TopoField=VC
+19	als	als	ADP	KOKOM	_	21	case	_	TopoField=NF
+20	seiner	seine	DET	PPOSAT	Case=Dat|Gender=Fem|Number=Sing|Poss=Yes	21	nmod:poss	_	Morph=dsf|TopoField=NF
+21	Idee	Idee	NOUN	NN	Case=Dat|Gender=Fem|Number=Sing	17	nmod	_	SpaceAfter=No|Morph=dsf|TopoField=NF
+22	,	,	PUNCT	$,	_	10	punct	_	TopoField=NF
+23	nämlich	nämlich	ADV	ADV	_	25	advmod	_	TopoField=NF
+24	seinem	sein	DET	PPOSAT	Case=Dat|Gender=Masc|Number=Sing|Poss=Yes	25	nmod:poss	_	Morph=dsm|TopoField=NF
+25	blue-print	blue-print	X	FM	Foreign=Yes	21	appos	_	SpaceAfter=No|TopoField=NF
+26	.	.	PUNCT	$.	_	10	punct	_	_
+27	"	"	PUNCT	$(	_	10	punct	_	_
+
+# sent_id = s29910
+# text = "Erst heute, in der Epoche der Massenindustrie, kommt dem einzelnen Objekt tatsächlich ein geringerer Seinsgrad zu als seiner Idee, nämlich seinem blueprint."
+1	"	"	PUNCT	$(	_	11	punct	_	SpaceAfter=No
+2	Erst	erst	ADV	ADV	_	3	advmod	_	TopoField=VF
+3	heute	heute	ADV	ADV	_	11	advmod	_	SpaceAfter=No|TopoField=VF
+4	,	,	PUNCT	$,	_	11	punct	_	TopoField=VF
+5	in	in	ADP	APPR	Case=Dat	7	case	_	Morph=d|TopoField=VF
+6	der	die	DET	ART	Case=Dat|Definite=Def|Gender=Fem|Number=Sing|PronType=Art	7	det	_	Morph=dsf|TopoField=VF
+7	Epoche	Epoche	NOUN	NN	Case=Dat|Gender=Fem|Number=Sing	3	obl	_	Morph=dsf|TopoField=VF
+8	der	die	DET	ART	Case=Gen|Definite=Def|Gender=Fem|Number=Sing|PronType=Art	9	det	_	Morph=gsf|TopoField=VF
+9	Massenindustrie	Massenindustrie	NOUN	NN	Case=Gen|Gender=Fem|Number=Sing	7	nmod:poss	_	SpaceAfter=No|Morph=gsf|TopoField=VF
+10	,	,	PUNCT	$,	_	11	punct	_	_
+11	kommt	zu#kommen	VERB	VVFIN	Mood=Ind|Number=Sing|Person=3|Tense=Pres|VerbForm=Fin	0	root	_	Morph=3sis|TopoField=LK
+12	dem	das	DET	ART	Case=Dat|Definite=Def|Gender=Neut|Number=Sing|PronType=Art	14	det	_	Morph=dsn|TopoField=MF
+13	einzelnen	einzeln	ADJ	ADJA	Case=Dat|Gender=Neut|Number=Sing	14	amod	_	Morph=dsn|TopoField=MF
+14	Objekt	Objekt	NOUN	NN	Case=Dat|Gender=Neut|Number=Sing	11	obj	_	Morph=dsn|TopoField=MF
+15	tatsächlich	tatsächlich	ADV	ADV	_	11	advmod	_	TopoField=MF
+16	ein	ein	DET	ART	Case=Nom|Definite=Ind|Gender=Masc|Number=Sing|PronType=Art	18	det	_	Morph=nsm|TopoField=MF
+17	geringerer	geringer	ADJ	ADJA	Case=Nom|Gender=Masc|Number=Sing	18	amod	_	Morph=nsm|TopoField=MF
+18	Seinsgrad	Seinsgrad	NOUN	NN	Case=Nom|Gender=Masc|Number=Sing	11	nsubj	_	Morph=nsm|TopoField=MF
+19	zu	zu	ADP	PTKVZ	_	11	compound:prt	_	TopoField=VC
+20	als	als	ADP	KOKOM	_	22	case	_	TopoField=NF
+21	seiner	seine	DET	PPOSAT	Case=Dat|Gender=Fem|Number=Sing|Poss=Yes	22	nmod:poss	_	Morph=dsf|TopoField=NF
+22	Idee	Idee	NOUN	NN	Case=Dat|Gender=Fem|Number=Sing	18	nmod	_	SpaceAfter=No|Morph=dsf|TopoField=NF
+23	,	,	PUNCT	$,	_	11	punct	_	TopoField=NF
+24	nämlich	nämlich	ADV	ADV	_	26	advmod	_	TopoField=NF
+25	seinem	sein	DET	PPOSAT	Case=Dat|Gender=Masc|Number=Sing|Poss=Yes	26	nmod:poss	_	Morph=dsm|TopoField=NF
+26	blueprint	blueprint	X	FM	Foreign=Yes	22	appos	_	SpaceAfter=No|TopoField=NF
+27	.	.	PUNCT	$.	_	11	punct	_	SpaceAfter=No
+28	"	"	PUNCT	$(	_	11	punct	_	_

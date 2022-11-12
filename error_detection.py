@@ -1,4 +1,3 @@
-import pandas as pd
 import progressbar
 import json
 
@@ -11,6 +10,7 @@ APPLY_NIL_INTERNAL_CONTEXT_HEURISTIC = True
 APPLY_DEPENDENCY_CONTEXT_HEURISTIC = True
 APPLY_POS_HEURISTIC = True
 POS_FILTER = 'PRON'
+NO_REPETITION = False
 
 
 class ErrorDetector:
@@ -48,8 +48,8 @@ class ErrorDetector:
 
     def analyze_sentences(self):
         """
-        main loop
-        calls other functions to retrieve nuclei, search for variation nuclei and collect the NIL items
+        main loop for first iteration
+        calls other functions to retrieve nuclei, searches for variation nuclei and collects the NIL items
         """
 
         # init progressbar
@@ -89,8 +89,17 @@ class ErrorDetector:
                 if APPLY_POS_HEURISTIC and accept:
                     accept = self.apply_pos_heuristic(item1, item2)
 
+                if NO_REPETITION and accept:
+                    accept = self.eliminate_duplicates(item1, item2)
+
                 if accept:
                     self.variation_nuclei.append((item1, item2))
+
+    def eliminate_duplicates(self, item1: Item, item2: Item):
+        for vn in self.variation_nuclei:
+            if item1 == vn[0] or item1 == vn[1] or item2 == vn[0] or item2 == vn[1]:
+                return False
+        return True
 
     def apply_dependency_context_heuristic(self, item1: Item, item2: Item):
         """checks whether the head of the first variation nucleus is used in the same function in the other instance"""
@@ -100,6 +109,8 @@ class ErrorDetector:
 
         sentence2 = self.sentences[item2.sentence]
         item1_label = item1.get_label()
+
+        # retrieves the desired dependency
         if isinstance(item1_label, set):
             other = sentence2[item2.head() - 1]
         elif item1_label.endswith('L'):
@@ -114,9 +125,11 @@ class ErrorDetector:
         """checks whether the two nuclei have the same internal context"""
 
         def get_internal_context(item: Item):
-            """helper method """
+            """helper method to retrieve the internal context"""
             internal_context = list()
             sentence = self.sentences[item.sentence]
+
+            # go through each word token in between, ignore punctuation
             for i in range(item.word1, item.word2 - 1):
                 line = sentence[i]
                 if line[3] == 'PUNCT':
@@ -136,10 +149,12 @@ class ErrorDetector:
         """compares the surrounding words of the two nucleus items"""
 
         def get_surrounding(item: Item):
-            """helper method"""
+            """helper method to get the immediate context"""
             sentence = self.sentences[item.sentence]
             l1, r1, l2, r2 = "", "", "", ""
 
+            # make sure not to leave the boundaries of the sentence
+            # assign an empty string for 'no context'
             if item.word1 > 1:
                 l1_item = sentence[item.word1 - 2]
                 if l1_item[3] == 'PUNCT':
@@ -149,16 +164,19 @@ class ErrorDetector:
                 else:
                     l1 = l1_item[1]
 
+            # right context of first item
             r1_item = sentence[item.word1]
             if r1_item[3] == 'PUNCT':
                 r1_item = sentence[item.word1 + 1]
             r1 = r1_item[1]
 
+            # left context of second item
             l2_item = sentence[item.word2 - 2]
             if l2_item[3] == 'PUNCT':
                 l2_item = sentence[item.word2 - 3]
             l2 = l2_item[1]
 
+            # right context of second item
             if item.word2 < len(sentence):
                 r2_item = sentence[item.word2]
                 if r2_item[3] == 'PUNCT':
@@ -259,7 +277,7 @@ class ErrorDetector:
                 self.nil.add_item(word, other_word, sentence_id, word_id, other_word_id)
 
     def detect_errors(self, filename: str):
-        """ 'main' method to use the functions in this class"""
+        """ 'main' method to connect the functions in this class"""
 
         # clear all class variables
         self.sentences.clear()
@@ -278,12 +296,11 @@ class ErrorDetector:
               "I found {} variation nuclei without heuristics. \n".format(len(self.variation_nuclei_raw)))
         self.apply_heuristics()
         print("After applying heuristics, I found {} variation nuclei. \n".format(len(self.variation_nuclei)))
-        # self.save_variation_nuclei()
+        self.save_variation_nuclei()
 
     def read_data(self, filename: str) -> None:
         """
         reads in a text file in CONLL-U format
-        :param filename: path to the file to read
         """
         with open(filename, 'r', encoding='utf8') as f:
             f.readline()  # ignore the 'newdoc' tag
@@ -301,9 +318,10 @@ class ErrorDetector:
                     if line[0].startswith('#') or '-' in line[0]:
                         pass
                     else:
-                        # line[1] = line[1].lower()
                         sentence.append(line)
                 line = f.readline()
+
+            # last sentence in the file
             if sentence:
                 self.sentences.append(sentence)
 
@@ -329,6 +347,6 @@ class ErrorDetector:
 
 
 if __name__ == '__main__':
+    fn = 'data/TuebaDZ_example.txt'
     ed = ErrorDetector()
-    fn = 'data/TuebaDZUpdated.txt'
     ed.detect_errors(fn)

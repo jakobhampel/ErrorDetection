@@ -21,14 +21,12 @@ class Item:
             return self.label
 
     def get_label_str(self):
+        """extract the label string out of the class variable"""
         if not self.label:
             return "NIL"
         elif len(self.label) == 1:
             (label,) = self.label
             return label
-        else:
-            print("There went something wrong")
-            return None
 
     def head(self):
         """returns the word which is the head of the pair"""
@@ -43,6 +41,7 @@ class Item:
         return None
 
     def overlaps_with(self, other) -> bool:
+        """checks for a given item, whether there is an overlap"""
         if self.sentence == other.sentence:
             if self.head() == other.head():
                 return True
@@ -116,10 +115,3 @@ class Trie(dict):
             if word2 in level2:
                 items = level2[word2]
         return items
-
-    def pretty_print(self):
-        """ pretty prints the two levels of the trie"""
-        for key, values in self.items():
-            for value, items in values.items():
-                for item in items:
-                    print(key + "\t" + value + "\t" + str(item))

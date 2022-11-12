@@ -1,7 +1,14 @@
-"""offers functions to post process json files of variation nuclei"""
+"""offers functions to post process json files of variation nuclei
+
+NOTE: Some functions in this file may not work or do not follow proper coding conventions.
+However, many of them were mainly used for testing purposes
+and none of them contributes to the actual error detection process"""
+
 import json
 from trie import Item
 from collections import Counter
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def read_vn(filename):
@@ -21,6 +28,7 @@ def read_vn(filename):
 
 
 def check_overlaps():
+    """collects all items that participate in an overlap"""
     fn = "data/variationNuclei.json"
     vn = read_vn(fn)
     print(len(vn))
@@ -57,8 +65,8 @@ def collect_statistics(filename: str):
 
 
 def compare_results():
-    version1 = "data/variationNuclei4_new.json"
-    version2 = "data/variationNuclei4_alternative.json"
+    version1 = ""
+    version2 = ""
 
     vn1 = read_vn(version1)
     vn2 = read_vn(version2)
@@ -72,14 +80,15 @@ def compare_results():
 
 
 def convert_to_txt(vn: list = None):
+    """converts a json file to a txt lists, creates URLs for Tündra lookup"""
 
     if not vn:
         print("Get own VNs")
-        fn = "data/variationNuclei4_differences.json"
+        fn = "data/no-repetition.json"
         vn = read_vn(fn)
         print(len(vn))
 
-    out = "result/variationNuclei4_differences.txt"
+    out = "result/no-repetition.txt"
 
     with open(out, "w") as f:
         for i in range(len(vn)):
@@ -160,7 +169,7 @@ def most_frequent_sentences(filename: str):
         sentences.append(v[1].sentence + 1)
 
     counter = Counter(sentences)
-    return counter.most_common(20)
+    return counter.most_common(40)
 
 
 def most_frequent_vn(filename: str):
@@ -179,17 +188,57 @@ def most_frequent_vn(filename: str):
     return counter.most_common(20)
 
 
-def count_determiner(filename: str):
-    vn = read_vn(filename)
-    det = {"der", "die", "das", "dem", "den"}
-    result = 0
-    for v in vn:
-        w1 = v[2]
-        w2 = v[3]
-        if w1 in det or w2 in det:
-            result += 1
-    print(result)
+def create_plots(filenames: list):
+    """function to use matplotlib and pandas to create some plots"""
+
+    # get label statistics for both sets
+    stats1 = get_label_pair_statistics(filenames[0])
+    stats2 = get_label_pair_statistics(filenames[1])
+
+    # plot input lists for first set
+    labels1 = [la[0][0] + " - " + la[0][1] for la in stats1][:20]
+    label_counts1 = [la[1] for la in stats1][:20]
+    labels1.reverse()
+    label_counts1.reverse()
+
+    # plot input lists for second set
+    labels2 = [la[0][0] + " - " + la[0][1] for la in stats2][:20]
+    label_counts2 = [la[1] for la in stats2][:20]
+    labels2.reverse()
+    label_counts2.reverse()
+
+    # same for both sets
+    indexes = np.arange(0, len(labels1))
+    width = 0.8
+
+    # set figure dimensions
+    fig, axis = plt.subplots(1, 2)
+    fig.set_figheight(7)
+    fig.set_figwidth(15)
+
+    # bar plot - first set
+    plt.subplot(1, 2, 1)
+    plt.title("Full", fontsize=17, pad=12)
+    plt.barh(indexes, label_counts1, width, color="darkblue")
+    plt.yticks(indexes, labels1, fontsize=11)
+    plt.tight_layout()
+    plt.margins(0.05, 0.01)
+
+    # bar plot - second set
+    plt.subplot(1, 2, 2)
+    plt.title("No-Repetition", fontsize=17, pad=10)
+    plt.barh(indexes, label_counts2, width, color="darkgreen")
+    plt.yticks(indexes, labels2, fontsize=11)
+    plt.tight_layout()
+    plt.margins(0.05, 0.01)
+
+    plt.subplots_adjust(left=0.12, bottom=0.12, wspace=0.35)
+    fig.text(0.5, 0.02, "Frequency", ha='center', fontsize=17)
+    fig.text(0.01, 0.5, "UD Label", va='center', rotation='vertical', fontsize=17)
+
+    # fig.savefig("plots/labelPair_distribution.pdf")
+    fig.show()
 
 
 if __name__ == "__main__":
-    compare_results()
+    collect_statistics('data/variationNuclei.json')
