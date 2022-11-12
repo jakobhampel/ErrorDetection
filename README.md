@@ -12,5 +12,6 @@ Boyd, A., Dickinson, M. & Meurers, W.D. On Detecting Errors in Dependency Treeba
 
 The program can be executed by running [error_detection.py](error_detection.py). This should detect 1 variation nucleus in the example database containing 2 sentences from the Tüba-D/Z treebank, and store them in [data/variationNuclei.json](data/variationNuclei.json).
 
-Please note that, due to copyright reasons, the actual treebank containing more than 100,000 sentences is not uploaded here.
+Please note that, due to copyright reasons, the actual treebank containing more than 100,000 sentences is not uploaded here.  
+However, some of the original results are collected in [result_statistics](result_statistics)
 
